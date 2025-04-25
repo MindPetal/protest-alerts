@@ -1,0 +1,31 @@
+# Install Python dependencies, run the search.
+
+name: Contract-Alerts-Run
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 12 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  contract-alerts-run:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+    - name: pip package install
+      run: |
+        pip install . --use-pep517
+        playwright install chromium
+    - name: Run search
+      env:
+        CONTRACT_LIST: ${{ secrets.CONTRACT_LIST }}
+        NAICS_LIST: ${{ secrets.NAICS_LIST }}
+        MS_URL: ${{ secrets.MS_URL }}
+      run: python3 search.py "$CONTRACT_LIST" "$NAICS_LIST" "$MS_URL"

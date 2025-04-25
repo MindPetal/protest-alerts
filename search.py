@@ -284,7 +284,6 @@ def main(rfq_list, ms_webhook_url):
     protest_results = process_search(rfq_list)
 
     if protest_results:
-        log.info(protest_results)
         log.info("Process Teams posts")
         api_config = client.Configuration()
         api_config.host = ms_webhook_url

@@ -1,6 +1,6 @@
 # Install Python dependencies, lint, run tests.
 
-name: Contract-Alerts-Build
+name: Protest-Alerts-Build
 
 on:
   workflow_dispatch:
@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  contract-alerts-build:
+  protest-alerts-build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4

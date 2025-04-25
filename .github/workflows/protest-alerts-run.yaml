@@ -1,6 +1,6 @@
 # Install Python dependencies, run the search.
 
-name: Contract-Alerts-Run
+name: Protest-Alerts-Run
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  contract-alerts-run:
+  protest-alerts-run:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -25,7 +25,6 @@ jobs:
         playwright install chromium
     - name: Run search
       env:
-        CONTRACT_LIST: ${{ secrets.CONTRACT_LIST }}
-        NAICS_LIST: ${{ secrets.NAICS_LIST }}
+        RFQ_LIST: ${{ secrets.RFQ_LIST }}
         MS_URL: ${{ secrets.MS_URL }}
-      run: python3 search.py "$CONTRACT_LIST" "$NAICS_LIST" "$MS_URL"
+      run: python3 search.py "$RFQ_LIST" "$MS_URL"

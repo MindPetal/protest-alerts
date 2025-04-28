@@ -7,7 +7,7 @@ import logging
 import sys
 from datetime import date, datetime, timedelta
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import BrowserContext, Page, sync_playwright
 import client
 from client.rest import ApiException
 
@@ -16,7 +16,7 @@ log = logging.getLogger("search")
 logging.basicConfig(level=logging.INFO)
 
 
-def get_details_page(i, page, context):
+def get_details_page(i: int, page: Page, context: BrowserContext) -> Page:
     # Go to details page
 
     details_link = (
@@ -30,7 +30,7 @@ def get_details_page(i, page, context):
     return new_tab
 
 
-def search(rfq_no, yday):
+def search(rfq_no: str, yday: str) -> tuple[list[dict], str]:
     # Execute gao search
 
     url = f"https://www.gao.gov/legal/bid-protests/search?processed=1&solicitation={rfq_no}&outcome=all#s-skipLinkTargetForMainSearchResults"
@@ -176,12 +176,12 @@ def search(rfq_no, yday):
         return protest_details, url
 
 
-def build_textblock(content):
+def build_textblock(content: str) -> dict:
     # Build TextBlock for MS Teams
     return {"type": "TextBlock", "text": content, "wrap": True}
 
 
-def format_results(raw_results):
+def format_results(raw_results: list[dict]) -> list:
     # Format results strings
 
     items = []
@@ -213,7 +213,7 @@ def format_results(raw_results):
     return items
 
 
-def process_search(rfq_list):
+def process_search(rfq_list: str) -> list:
     # Prepare gao search and format results
     rfq_pairs = []
     raw_results = []
@@ -251,7 +251,7 @@ def process_search(rfq_list):
     return format_results(raw_results)
 
 
-def teams_post(api_client, items):
+def teams_post(api_client: client.ApiClient, items: list[dict]) -> None:
     # Execute MS Teams post
     api_instance = client.MsApi(api_client)
 
@@ -277,7 +277,7 @@ def teams_post(api_client, items):
         log.exception("Exception when calling MsApi->teams_post: %s\n" % e)
 
 
-def main(rfq_list, ms_webhook_url):
+def main(rfq_list: str, ms_webhook_url: str) -> None:
     # Primary processing fuction
 
     log.info("Start processing")

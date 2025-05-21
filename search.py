@@ -49,7 +49,17 @@ def search(rfq_no: str, yday: str) -> tuple[list[dict], str]:
 
         if protest_count > 0:
 
-            for i in range(protest_count):
+            closed_protest_count = page.locator(
+                "div.teaser-search--outcome .field__item"
+            ).count()
+            open_protest_count = page.locator(
+                "div.teaser-search--status .field__item"
+            ).count()
+            log.info(
+                f"{closed_protest_count} closed protests, {open_protest_count} open protests"
+            )
+
+            for i in range(closed_protest_count):
 
                 protest_info = {}
 
@@ -59,6 +69,7 @@ def search(rfq_no: str, yday: str) -> tuple[list[dict], str]:
                     .is_visible()
                 ):
                     # Closed protest
+
                     decided_dt = (
                         page.locator("div.teaser-search--decision_date .field__item")
                         .nth(i)
@@ -116,7 +127,11 @@ def search(rfq_no: str, yday: str) -> tuple[list[dict], str]:
 
                         protest_details.append(protest_info)
 
-                elif (
+            for i in range(open_protest_count):
+
+                protest_info = {}
+
+                if (
                     page.locator("div.teaser-search--status .field__item")
                     .nth(i)
                     .is_visible()
@@ -218,6 +233,7 @@ def process_search(rfq_list: str) -> list:
     rfq_pairs = []
     raw_results = []
     yday = (datetime.now() - timedelta(days=1)).strftime("%b %d, %Y")
+    log.info(f"Yesterday: {yday}")
 
     if rfq_list:
         rfq_pairs = rfq_list.split(",")

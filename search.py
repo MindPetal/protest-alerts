@@ -324,6 +324,7 @@ def teams_post(api_client: client.ApiClient, items: list[dict]) -> None:
 
     except ApiException as e:
         log.exception("Exception when calling MsApi->teams_post: %s\n" % e)
+        raise
 
 
 def main(rfq_list: str, ms_webhook_url: str) -> None:

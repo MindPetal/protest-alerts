@@ -339,6 +339,8 @@ def main(rfq_list: str, ms_webhook_url: str) -> None:
         api_config.host = ms_webhook_url
         api_client = client.ApiClient(api_config)
         teams_post(api_client, protest_results)
+    else:
+        log.info("No protest updates found")
 
 
 """ Read in rfq_list, ms_webhook_url

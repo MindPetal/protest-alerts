@@ -110,6 +110,8 @@ def search(rfq_no: str, yday: str) -> tuple[list[dict], str]:
                         .strip()
                     )
 
+                    log.info(f"Decided date: {decided_dt}")
+
                     if decided_dt == yday:
                         log.info("Protest updated")
                         protest_info["company"] = (
@@ -265,7 +267,7 @@ def process_search(rfq_list: str) -> list:
     # Prepare gao search and format results
     rfq_pairs = []
     raw_results = []
-    yday = (datetime.now() - timedelta(days=1)).strftime("%b %d, %Y")
+    yday = (datetime.now() - timedelta(days=1)).strftime("%b %-d, %Y")
     log.info(f"Yesterday: {yday}")
 
     if rfq_list:

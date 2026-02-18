@@ -242,7 +242,7 @@ def format_results(raw_results: list[dict]) -> list:
 
         for result in raw_results:
 
-            content = f'**{result["index"]}. {result["rfq_nm"]} - Solicitation {result["rfq_no"]} - [View updates]({result["url"]})**'
+            content = f'**{result["index"]}. {result["rfq_nm"]}** - {result["rfq_no"]} - [View on GAO]({result["url"]})'
 
             for detail in result["protest_details"]:
 

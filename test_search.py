@@ -80,7 +80,7 @@ def test_format_results():
         },
         {
             "type": "TextBlock",
-            "text": "**1. Test RFQ Name - Solicitation 123456789 - [View updates](https://example.com)**\n\n- Test Company **|** Bid Protest Sustained **|** Decided Feb 2, 2024 **|** [View decision](https://www.gao.gov/products/b-422681.5)\n\n- Test Company2 **|** Bid Protest Opened **|** Filed Feb 2, 2024 **|** Due May 2, 2024",
+            "text": "**1. Test RFQ Name** - 123456789 - [View on GAO](https://example.com)\n\n- Test Company **|** Bid Protest Sustained **|** Decided Feb 2, 2024 **|** [View decision](https://www.gao.gov/products/b-422681.5)\n\n- Test Company2 **|** Bid Protest Opened **|** Filed Feb 2, 2024 **|** Due May 2, 2024",
             "wrap": True,
         },
         {
@@ -90,7 +90,7 @@ def test_format_results():
         },
         {
             "type": "TextBlock",
-            "text": "**2. Test RFQ Name2 - Solicitation 987654321 - [View updates](https://example.com)**\n\n- Test Company **|** Bid Protest Opened **|** Filed Feb 2, 2024 **|** Due May 2, 2024",
+            "text": "**2. Test RFQ Name2** - 987654321 - [View on GAO](https://example.com)\n\n- Test Company **|** Bid Protest Opened **|** Filed Feb 2, 2024 **|** Due May 2, 2024",
             "wrap": True,
         },
         {
@@ -135,7 +135,7 @@ def test_process_search_protest_results(mocker):
         },
         {
             "type": "TextBlock",
-            "text": "**1. Test RFQ Name - Solicitation 123456789 - [View updates](https://example.com)**\n\n- Test Company **|** Bid Protest Sustained **|** Decided Feb 2, 2024 **|** [View decision](https://www.gao.gov/products/b-422681.5)\n\n- Test Company2 **|** Bid Protest Opened **|** Filed Feb 2, 2024 **|** Due May 2, 2024",
+            "text": "**1. Test RFQ Name** - 123456789 - [View on GAO](https://example.com)\n\n- Test Company **|** Bid Protest Sustained **|** Decided Feb 2, 2024 **|** [View decision](https://www.gao.gov/products/b-422681.5)\n\n- Test Company2 **|** Bid Protest Opened **|** Filed Feb 2, 2024 **|** Due May 2, 2024",
             "wrap": True,
         },
         {
@@ -171,7 +171,7 @@ def test_teams_post(mocker):
         },
         {
             "type": "TextBlock",
-            "text": "**1. Test RFQ Name - Solicitation 123456789 - [View updates](https://example.com)**\n\n- Test Company **|** Bid Protest Sustained **|** Decided Feb 2, 2024 **|** [View decision](https://example.com)\n\n- Test Company2 **|** Bid Protest Opened **|** Filed Feb 2, 2024 **|** Due May 2, 2024",
+            "text": "**1. Test RFQ Name** - 123456789 - [View on GAO](https://example.com)\n\n- Test Company **|** Bid Protest Sustained **|** Decided Feb 2, 2024 **|** [View decision](https://example.com)\n\n- Test Company2 **|** Bid Protest Opened **|** Filed Feb 2, 2024 **|** Due May 2, 2024",
             "wrap": True,
         },
         {
@@ -181,7 +181,7 @@ def test_teams_post(mocker):
         },
         {
             "type": "TextBlock",
-            "text": "**2. Test RFQ Name2 - Solicitation 987654321 - [View updates](https://example.com)**\n\n- Test Company **|** Bid Protest Opened **|** Filed Feb 2, 2024 **|** Due May 2, 2024",
+            "text": "**2. Test RFQ Name2** - 987654321 - [View on GAO](https://example.com)\n\n- Test Company **|** Bid Protest Opened **|** Filed Feb 2, 2024 **|** Due May 2, 2024",
             "wrap": True,
         },
         {

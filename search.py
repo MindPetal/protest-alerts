@@ -248,15 +248,15 @@ def format_results(raw_results: list[dict]) -> list:
 
                 if "decided_dt" in detail:
                     # Case closed
-                    content += f'\n\n- {detail["company"]} **|** {detail["type"]} {detail["status"]} **|** Decided {detail["decided_dt"]}'
+                    content += f'\n\n- {detail["company"]} | {detail["type"]} {detail["status"]} | Decided {detail["decided_dt"]}'
 
                     if "decision_url" in detail:
                         # Decision report published
-                        content += f' **|** [View decision](https://www.gao.gov{detail["decision_url"]})'
+                        content += f' | [View decision](https://www.gao.gov{detail["decision_url"]})'
 
                 elif "filed_dt" in detail:
                     # Case opened
-                    content += f'\n\n- {detail["company"]} **|** {detail["type"]} Opened **|** Filed {detail["filed_dt"]} **|** Due {detail["due_dt"]}'
+                    content += f'\n\n- {detail["company"]} | {detail["type"]} Opened | Filed {detail["filed_dt"]} | Due {detail["due_dt"]}'
 
             items += [build_textblock(content), build_textblock("")]
 

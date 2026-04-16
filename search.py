@@ -75,6 +75,10 @@ def search(rfq_no: str, yday: str) -> tuple[list[dict], str]:
         page = context.new_page()
         response = page.goto(url)
 
+        if response is None:
+            browser.close()
+            raise Exception("No response received from page")
+
         if response.status != 200:
             browser.close()
             raise Exception(f"Received HTTP {response.status}")
@@ -142,12 +146,12 @@ def search(rfq_no: str, yday: str) -> tuple[list[dict], str]:
                             .is_visible()
                         ):
                             # Decision report published
-                            protest_info["decision_url"] = (
+                            href = (
                                 page.locator("div.teaser-search-decision a")
                                 .nth(i)
                                 .get_attribute("href")
-                                .strip()
                             )
+                            protest_info["decision_url"] = href.strip() if href else ""
 
                         # Go to details page
                         details_page = get_details_page(i, page, context)

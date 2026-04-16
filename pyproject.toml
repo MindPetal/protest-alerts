@@ -40,5 +40,4 @@ python-version = "3.13"
 exclude = ["client/", "build/"]
 
 [tool.ty.rules]
-unresolved-attribute = "warn"
 invalid-argument-type = "warn"

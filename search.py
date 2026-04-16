@@ -1,6 +1,6 @@
 """
-    Script executes via github actions to scrape protest updates
-    from GAO and post results to MS Teams. 
+Script executes via github actions to scrape protest updates
+from GAO and post results to MS Teams.
 """
 
 import logging
@@ -8,9 +8,9 @@ import sys
 from datetime import date, datetime, timedelta
 
 from playwright.sync_api import BrowserContext, Page, sync_playwright
+
 import client
 from client.rest import ApiException
-
 
 log = logging.getLogger("search")
 logging.basicConfig(level=logging.INFO)
@@ -37,51 +37,56 @@ def search(rfq_no: str, yday: str) -> tuple[list[dict], str]:
     protest_details = []
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True,)
+        browser = p.chromium.launch(
+            headless=True,
+        )
         context = browser.new_context(
-            viewport={'width': 1920, 'height': 1080},
-            screen={'width': 1920, 'height': 1080},
+            viewport={"width": 1920, "height": 1080},
+            screen={"width": 1920, "height": 1080},
             device_scale_factor=1,
             is_mobile=False,
             has_touch=False,
-            user_agent='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            locale='en-US',
-            timezone_id='America/New_York',
-            permissions=['geolocation'],
-            geolocation={'latitude': 40.7128, 'longitude': -74.0060},
-            color_scheme='light',
-            reduced_motion='no-preference',
-            forced_colors='none',
+            user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            locale="en-US",
+            timezone_id="America/New_York",
+            permissions=["geolocation"],
+            geolocation={"latitude": 40.7128, "longitude": -74.0060},
+            color_scheme="light",
+            reduced_motion="no-preference",
+            forced_colors="none",
             extra_http_headers={
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-                'Upgrade-Insecure-Requests': '1',
-                'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-                'sec-ch-ua-mobile': '?0',
-                'sec-ch-ua-platform': '"Linux"',
-                'DNT': '1',
-                'Connection': 'keep-alive'
-            }
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Cache-Control": "no-cache",
+                "Pragma": "no-cache",
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "none",
+                "Sec-Fetch-User": "?1",
+                "Upgrade-Insecure-Requests": "1",
+                "sec-ch-ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": '"Linux"',
+                "DNT": "1",
+                "Connection": "keep-alive",
+            },
         )
         page = context.new_page()
         response = page.goto(url)
-        
+
+        if response is None:
+            browser.close()
+            raise Exception("No response received from page")
+
         if response.status != 200:
             browser.close()
             raise Exception(f"Received HTTP {response.status}")
-    
+
         protest_count = page.locator("div.teaser-search--bookmark").count()
         log.info(f"{protest_count} protests found")
 
         if protest_count > 0:
-
             closed_protest_count = page.locator(
                 "div.teaser-search--outcome .field__item"
             ).count()
@@ -93,7 +98,6 @@ def search(rfq_no: str, yday: str) -> tuple[list[dict], str]:
             )
 
             for i in range(closed_protest_count):
-
                 protest_info = {}
 
                 if (
@@ -142,12 +146,12 @@ def search(rfq_no: str, yday: str) -> tuple[list[dict], str]:
                             .is_visible()
                         ):
                             # Decision report published
-                            protest_info["decision_url"] = (
+                            href = (
                                 page.locator("div.teaser-search-decision a")
                                 .nth(i)
                                 .get_attribute("href")
-                                .strip()
                             )
+                            protest_info["decision_url"] = href.strip() if href else ""
 
                         # Go to details page
                         details_page = get_details_page(i, page, context)
@@ -163,7 +167,6 @@ def search(rfq_no: str, yday: str) -> tuple[list[dict], str]:
                         protest_details.append(protest_info)
 
             for i in range(open_protest_count):
-
                 protest_info = {}
 
                 if (
@@ -237,26 +240,24 @@ def format_results(raw_results: list[dict]) -> list:
     items = []
 
     if raw_results:
-        header = f'**{date.today().strftime("%A, %m/%d/%Y")}.** Protest updates.'
+        header = f"**{date.today().strftime('%A, %m/%d/%Y')}.** Protest updates."
         items += [build_textblock(header), build_textblock("")]
 
         for result in raw_results:
-
-            content = f'**{result["index"]}. {result["rfq_nm"]}** - {result["rfq_no"]} - [View on GAO]({result["url"]})'
+            content = f"**{result['index']}. {result['rfq_nm']}** - {result['rfq_no']} - [View on GAO]({result['url']})"
 
             for detail in result["protest_details"]:
-
                 if "decided_dt" in detail:
                     # Case closed
-                    content += f'\n\n- {detail["company"]} | {detail["type"]} {detail["status"]} | Decided {detail["decided_dt"]}'
+                    content += f"\n\n- {detail['company']} | {detail['type']} {detail['status']} | Decided {detail['decided_dt']}"
 
                     if "decision_url" in detail:
                         # Decision report published
-                        content += f' | [View decision](https://www.gao.gov{detail["decision_url"]})'
+                        content += f" | [View decision](https://www.gao.gov{detail['decision_url']})"
 
                 elif "filed_dt" in detail:
                     # Case opened
-                    content += f'\n\n- {detail["company"]} | {detail["type"]} Opened | Filed {detail["filed_dt"]} | Due {detail["due_dt"]}'
+                    content += f"\n\n- {detail['company']} | {detail['type']} Opened | Filed {detail['filed_dt']} | Due {detail['due_dt']}"
 
             items += [build_textblock(content), build_textblock("")]
 

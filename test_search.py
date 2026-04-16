@@ -1,5 +1,5 @@
 """
-    Tests for search.py 
+Tests for search.py
 """
 
 from datetime import date
@@ -70,7 +70,7 @@ def test_format_results():
     items = [
         {
             "type": "TextBlock",
-            "text": f'**{date.today().strftime("%A, %m/%d/%Y")}.** Protest updates.',
+            "text": f"**{date.today().strftime('%A, %m/%d/%Y')}.** Protest updates.",
             "wrap": True,
         },
         {
@@ -125,7 +125,7 @@ def test_process_search_protest_results(mocker):
     items = [
         {
             "type": "TextBlock",
-            "text": f'**{date.today().strftime("%A, %m/%d/%Y")}.** Protest updates.',
+            "text": f"**{date.today().strftime('%A, %m/%d/%Y')}.** Protest updates.",
             "wrap": True,
         },
         {
@@ -161,7 +161,7 @@ def test_teams_post(mocker):
     items = [
         {
             "type": "TextBlock",
-            "text": f'**{date.today().strftime("%A, %m/%d/%Y")}.** Protest updates.',
+            "text": f"**{date.today().strftime('%A, %m/%d/%Y')}.** Protest updates.",
             "wrap": True,
         },
         {

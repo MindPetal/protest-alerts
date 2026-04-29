@@ -5,8 +5,8 @@ description = "GAO protest search and post to MS Teams"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "certifi>=14.05.14",
-    "playwright>=1.51.0",
+    "certifi>=2026.4.22",
+    "playwright>=1.59.0",
     "python-dateutil>=2.5.3",
     "setuptools>=21.0.0",
     "six>=1.10",

@@ -157,6 +157,83 @@ def test_process_search_zero(mocker):
     assert [] == search.process_search(rfq_list)
 
 
+def test_format_results_closed_no_decision_url():
+    """Closed protest with no published decision should not include a View decision link."""
+    raw_results = [
+        {
+            "index": 1,
+            "rfq_no": "123456789",
+            "rfq_nm": "Test RFQ Name",
+            "protest_details": [
+                {
+                    "company": "Test Company",
+                    "status": "Dismissed",
+                    "decided_dt": "Feb 2, 2024",
+                    "type": "Bid Protest",
+                    # no decision_url
+                },
+            ],
+            "url": "https://example.com",
+        },
+    ]
+
+    items = search.format_results(raw_results)
+    content = items[2]["text"]
+
+    assert "View decision" not in content
+    assert "Test Company | Bid Protest Dismissed | Decided Feb 2, 2024" in content
+
+
+def test_format_results_decision_url_not_shared_across_protests():
+    """When only the second of two closed protests has a decision URL,
+    the first protest's output must not include any decision link."""
+    raw_results = [
+        {
+            "index": 1,
+            "rfq_no": "111111111",
+            "rfq_nm": "RFQ No Decision",
+            "protest_details": [
+                {
+                    "company": "Company A",
+                    "status": "Dismissed",
+                    "decided_dt": "Feb 2, 2024",
+                    "type": "Bid Protest",
+                    # no decision_url — the bug caused this to get Company B's link
+                },
+            ],
+            "url": "https://example.com/1",
+        },
+        {
+            "index": 2,
+            "rfq_no": "222222222",
+            "rfq_nm": "RFQ With Decision",
+            "protest_details": [
+                {
+                    "company": "Company B",
+                    "status": "Sustained",
+                    "decided_dt": "Feb 2, 2024",
+                    "decision_url": "/products/b-999999.1",
+                    "type": "Bid Protest",
+                },
+            ],
+            "url": "https://example.com/2",
+        },
+    ]
+
+    items = search.format_results(raw_results)
+    # items layout: header, blank, rfq1_content, blank, rfq2_content, blank
+    rfq1_content = items[2]["text"]
+    rfq2_content = items[4]["text"]
+
+    assert "View decision" not in rfq1_content, (
+        "First protest (no decision) must not include a View decision link"
+    )
+    assert "View decision" in rfq2_content, (
+        "Second protest (with decision) must include a View decision link"
+    )
+    assert "https://www.gao.gov/products/b-999999.1" in rfq2_content
+
+
 def test_teams_post(mocker):
     items = [
         {

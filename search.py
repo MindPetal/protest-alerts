@@ -140,18 +140,35 @@ def search(rfq_no: str, yday: str) -> tuple[list[dict], str]:
                             .strip()
                         )
 
-                        if (
-                            page.locator("div.teaser-search-decision")
-                            .nth(i)
-                            .is_visible()
-                        ):
+                        # Walk decision_date/decision siblings in DOM order to match decision link to protest index
+                        href = page.evaluate(
+                            """
+                            (i) => {
+                                const nodes = Array.from(document.querySelectorAll(
+                                    'div.teaser-search--decision_date, div.teaser-search-decision'
+                                ));
+                                let count = 0;
+                                for (let j = 0; j < nodes.length; j++) {
+                                    if (nodes[j].matches('div.teaser-search--decision_date')) {
+                                        if (count === i) {
+                                            const next = nodes[j + 1];
+                                            if (next && next.matches('div.teaser-search-decision')) {
+                                                const a = next.querySelector('a');
+                                                return a ? a.getAttribute('href') : null;
+                                            }
+                                            return null;
+                                        }
+                                        count++;
+                                    }
+                                }
+                                return null;
+                            }
+                            """,
+                            i,
+                        )
+                        if href:
                             # Decision report published
-                            href = (
-                                page.locator("div.teaser-search-decision a")
-                                .nth(i)
-                                .get_attribute("href")
-                            )
-                            protest_info["decision_url"] = href.strip() if href else ""
+                            protest_info["decision_url"] = href.strip()
 
                         # Go to details page
                         details_page = get_details_page(i, page, context)

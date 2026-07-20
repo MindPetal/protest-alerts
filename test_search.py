@@ -318,7 +318,7 @@ def test_format_roundup():
     items = [
         {
             "type": "TextBlock",
-            "text": f"**{date.today().strftime('%A, %m/%d/%Y')}.** Weekly roundup of open GAO protests.",
+            "text": f"**{date.today().strftime('%A, %m/%d/%Y')}.** Weekly roundup of open GAO protests for tracked bids.",
             "wrap": True,
         },
         {
@@ -374,7 +374,7 @@ def test_process_roundup(mocker):
     items = [
         {
             "type": "TextBlock",
-            "text": f"**{date.today().strftime('%A, %m/%d/%Y')}.** Weekly roundup of open GAO protests.",
+            "text": f"**{date.today().strftime('%A, %m/%d/%Y')}.** Weekly roundup of open GAO protests for tracked bids.",
             "wrap": True,
         },
         {

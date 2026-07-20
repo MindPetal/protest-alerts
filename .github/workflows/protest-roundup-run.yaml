@@ -1,17 +1,17 @@
-# Install Python dependencies, run the search.
+# Install Python dependencies, run the weekly open-protest roundup.
 
-name: Protest-Alerts-Run
+name: Protest-Roundup-Run
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 11 * * *'
+    - cron: '30 19 * * 5'
 
 permissions:
   contents: read
 
 jobs:
-  protest-alerts-run:
+  protest-roundup-run:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
@@ -23,8 +23,8 @@ jobs:
       run: uv sync --locked
     - name: Install Playwright browsers
       run: uv run playwright install chromium
-    - name: Run search
+    - name: Run roundup
       env:
         RFQ_LIST: ${{ secrets.RFQ_LIST }}
         MS_URL: ${{ secrets.MS_URL }}
-      run: uv run python3 search.py "$RFQ_LIST" "$MS_URL" daily
+      run: uv run python3 search.py "$RFQ_LIST" "$MS_URL" roundup

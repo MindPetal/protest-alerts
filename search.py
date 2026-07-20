@@ -30,8 +30,10 @@ def get_details_page(i: int, page: Page, context: BrowserContext) -> Page:
     return new_tab
 
 
-def search(rfq_no: str, yday: str) -> tuple[list[dict], str]:
+def search(rfq_no: str, yday: str, roundup: bool = False) -> tuple[list[dict], str]:
     # Execute gao search
+    # roundup=False (daily): report protests from yesterday
+    # roundup=True (weekly): report open protests, not date bound
 
     url = f"https://www.gao.gov/legal/bid-protests/search?processed=1&solicitation={rfq_no}&outcome=all#s-skipLinkTargetForMainSearchResults"
     protest_details = []
@@ -97,7 +99,7 @@ def search(rfq_no: str, yday: str) -> tuple[list[dict], str]:
                 f"{closed_protest_count} closed protests, {open_protest_count} open protests"
             )
 
-            for i in range(closed_protest_count):
+            for i in range(0 if roundup else closed_protest_count):
                 protest_info = {}
 
                 if (
@@ -204,7 +206,7 @@ def search(rfq_no: str, yday: str) -> tuple[list[dict], str]:
                         .strip()
                     )
 
-                    if filed_dt == yday:
+                    if roundup or filed_dt == yday:
                         log.info("Opened protest")
                         protest_info["company"] = (
                             page.locator("div.teaser-search--heading h4.heading")
@@ -281,8 +283,31 @@ def format_results(raw_results: list[dict]) -> list:
     return items
 
 
-def process_search(rfq_list: str) -> list:
+def format_roundup(raw_results: list[dict]) -> list:
+    # Format weekly roundup strings
+
+    header = f"**{date.today().strftime('%A, %m/%d/%Y')}.** Weekly roundup of open GAO protests for tracked bids."
+    items = [build_textblock(header), build_textblock("")]
+
+    for result in raw_results:
+        if result["protest_details"]:
+            content = f"**{result['index']}. {result['rfq_nm']}** - {result['rfq_no']} - [View on GAO]({result['url']})"
+
+            for detail in result["protest_details"]:
+                # Open protest
+                content += f"\n\n- {detail['company']} | {detail['type']} Opened | Filed {detail['filed_dt']} | Due {detail['due_dt']}"
+        else:
+            content = f"**{result['index']}. {result['rfq_nm']}** - {result['rfq_no']} - No open protests."
+
+        items += [build_textblock(content), build_textblock("")]
+
+    return items
+
+
+def process_search(rfq_list: str, mode: str) -> list:
     # Prepare gao search and format results
+
+    roundup = mode == "roundup"
     rfq_pairs = []
     raw_results = []
     yday = (datetime.now() - timedelta(days=1)).strftime("%b %-d, %Y")
@@ -297,9 +322,9 @@ def process_search(rfq_list: str) -> list:
         rfq_no, rfq_nm = pair.split(":", 1)
         rfq_no = rfq_no.strip()
         rfq_nm = rfq_nm.strip()
-        protest_details, url = search(rfq_no, yday)
+        protest_details, url = search(rfq_no, yday, roundup=roundup)
 
-        if protest_details:
+        if roundup or protest_details:
             raw_results.append(
                 {
                     "rfq_no": rfq_no,
@@ -309,15 +334,14 @@ def process_search(rfq_list: str) -> list:
                 }
             )
 
-    if raw_results:
-        # Inject index into results
-        n = 1
+    # Inject index into results
+    n = 1
 
-        for result in raw_results:
-            result["index"] = n
-            n += 1
+    for result in raw_results:
+        result["index"] = n
+        n += 1
 
-    return format_results(raw_results)
+    return format_roundup(raw_results) if roundup else format_results(raw_results)
 
 
 def teams_post(api_client: client.ApiClient, items: list[dict]) -> None:
@@ -347,11 +371,12 @@ def teams_post(api_client: client.ApiClient, items: list[dict]) -> None:
         raise
 
 
-def main(rfq_list: str, ms_webhook_url: str) -> None:
+def main(rfq_list: str, ms_webhook_url: str, mode: str) -> None:
     # Primary processing fuction
 
     log.info("Start processing")
-    protest_results = process_search(rfq_list)
+
+    protest_results = process_search(rfq_list, mode)
 
     if protest_results:
         log.info("Process Teams posts")
@@ -363,7 +388,7 @@ def main(rfq_list: str, ms_webhook_url: str) -> None:
         log.info("No protest updates found")
 
 
-""" Read in rfq_list, ms_webhook_url
+""" Read in rfq_list, ms_webhook_url, mode (daily|roundup)
 """
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], sys.argv[3])

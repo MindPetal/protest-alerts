@@ -146,7 +146,7 @@ def test_process_search_protest_results(mocker):
     ]
 
     mocker.patch("search.search", return_value=(protest_details, "https://example.com"))
-    assert items == search.process_search(rfq_list)
+    assert items == search.process_search(rfq_list, "daily")
 
 
 def test_process_search_zero(mocker):
@@ -154,7 +154,7 @@ def test_process_search_zero(mocker):
     protest_details = []
 
     mocker.patch("search.search", return_value=(protest_details, "https://example.com"))
-    assert [] == search.process_search(rfq_list)
+    assert [] == search.process_search(rfq_list, "daily")
 
 
 def test_format_results_closed_no_decision_url():
@@ -285,3 +285,124 @@ def test_teams_post(mocker):
     mock_teams_post = mocker.patch("search.client.MsApi.teams_post")
     search.teams_post(api_client, items)
     mock_teams_post.assert_called_once_with(body=body)
+
+
+def test_format_roundup():
+    """Roundup lists open protests per solicitation and shows a placeholder
+    for solicitations with no open protests."""
+    raw_results = [
+        {
+            "index": 1,
+            "rfq_no": "123456789",
+            "rfq_nm": "Test RFQ Name",
+            "protest_details": [
+                {
+                    "company": "Test Company",
+                    "status": "Opened",
+                    "type": "Bid Protest",
+                    "filed_dt": "Feb 2, 2024",
+                    "due_dt": "May 2, 2024",
+                }
+            ],
+            "url": "https://example.com",
+        },
+        {
+            "index": 2,
+            "rfq_no": "987654321",
+            "rfq_nm": "Test RFQ Name2",
+            "protest_details": [],
+            "url": "https://example.com",
+        },
+    ]
+
+    items = [
+        {
+            "type": "TextBlock",
+            "text": f"**{date.today().strftime('%A, %m/%d/%Y')}.** Weekly roundup of open GAO protests.",
+            "wrap": True,
+        },
+        {
+            "type": "TextBlock",
+            "text": "",
+            "wrap": True,
+        },
+        {
+            "type": "TextBlock",
+            "text": "**1. Test RFQ Name** - 123456789 - [View on GAO](https://example.com)\n\n- Test Company | Bid Protest Opened | Filed Feb 2, 2024 | Due May 2, 2024",
+            "wrap": True,
+        },
+        {
+            "type": "TextBlock",
+            "text": "",
+            "wrap": True,
+        },
+        {
+            "type": "TextBlock",
+            "text": "**2. Test RFQ Name2** - 987654321 - No open protests.",
+            "wrap": True,
+        },
+        {
+            "type": "TextBlock",
+            "text": "",
+            "wrap": True,
+        },
+    ]
+
+    assert items == search.format_roundup(raw_results)
+
+
+def test_process_roundup(mocker):
+    """Every tracked solicitation is included, even with no open protests."""
+    rfq_list = "123456789:Test RFQ Name,987654321:Test RFQ Name2"
+
+    def fake_search(rfq_no, yday, roundup=False):
+        if rfq_no == "123456789":
+            return (
+                [
+                    {
+                        "company": "Test Company",
+                        "status": "Opened",
+                        "type": "Bid Protest",
+                        "filed_dt": "Feb 2, 2024",
+                        "due_dt": "May 2, 2024",
+                    }
+                ],
+                "https://example.com",
+            )
+        return ([], "https://example.com")
+
+    items = [
+        {
+            "type": "TextBlock",
+            "text": f"**{date.today().strftime('%A, %m/%d/%Y')}.** Weekly roundup of open GAO protests.",
+            "wrap": True,
+        },
+        {
+            "type": "TextBlock",
+            "text": "",
+            "wrap": True,
+        },
+        {
+            "type": "TextBlock",
+            "text": "**1. Test RFQ Name** - 123456789 - [View on GAO](https://example.com)\n\n- Test Company | Bid Protest Opened | Filed Feb 2, 2024 | Due May 2, 2024",
+            "wrap": True,
+        },
+        {
+            "type": "TextBlock",
+            "text": "",
+            "wrap": True,
+        },
+        {
+            "type": "TextBlock",
+            "text": "**2. Test RFQ Name2** - 987654321 - No open protests.",
+            "wrap": True,
+        },
+        {
+            "type": "TextBlock",
+            "text": "",
+            "wrap": True,
+        },
+    ]
+
+    mocker.patch("search.search", side_effect=fake_search)
+    assert items == search.process_search(rfq_list, "roundup")

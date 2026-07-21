@@ -328,7 +328,7 @@ def test_format_roundup():
         },
         {
             "type": "TextBlock",
-            "text": "**1. Test RFQ Name** - 123456789 - [View on GAO](https://example.com)\n\n- Test Company | Bid Protest Opened | Filed Feb 2, 2024 | Due May 2, 2024",
+            "text": "**1. Test RFQ Name** - 123456789 - [View on GAO](https://example.com)\n\n- Test Company, filed Feb 2, 2024, due May 2, 2024",
             "wrap": True,
         },
         {
@@ -384,7 +384,7 @@ def test_process_roundup(mocker):
         },
         {
             "type": "TextBlock",
-            "text": "**1. Test RFQ Name** - 123456789 - [View on GAO](https://example.com)\n\n- Test Company | Bid Protest Opened | Filed Feb 2, 2024 | Due May 2, 2024",
+            "text": "**1. Test RFQ Name** - 123456789 - [View on GAO](https://example.com)\n\n- Test Company, filed Feb 2, 2024, due May 2, 2024",
             "wrap": True,
         },
         {

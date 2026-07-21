@@ -295,7 +295,7 @@ def format_roundup(raw_results: list[dict]) -> list:
 
             for detail in result["protest_details"]:
                 # Open protest
-                content += f"\n\n- {detail['company']} | {detail['type']} Opened | Filed {detail['filed_dt']} | Due {detail['due_dt']}"
+                content += f"\n\n- {detail['company']}, filed {detail['filed_dt']}, due {detail['due_dt']}"
         else:
             content = f"**{result['index']}. {result['rfq_nm']}** - {result['rfq_no']} - No open protests."
 

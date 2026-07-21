@@ -289,17 +289,30 @@ def format_roundup(raw_results: list[dict]) -> list:
     header = f"**{date.today().strftime('%A, %m/%d/%Y')}.** Weekly roundup of open GAO protests for tracked bids."
     items = [build_textblock(header), build_textblock("")]
 
+    no_protest_results = []
+    n = 1
+
     for result in raw_results:
         if result["protest_details"]:
-            content = f"**{result['index']}. {result['rfq_nm']}** - {result['rfq_no']} - [View on GAO]({result['url']})"
+            content = f"**{n}. {result['rfq_nm']}** - {result['rfq_no']} - [View on GAO]({result['url']})"
 
             for detail in result["protest_details"]:
                 # Open protest
                 content += f"\n\n- {detail['company']}, filed {detail['filed_dt']}, due {detail['due_dt']}"
-        else:
-            content = f"**{result['index']}. {result['rfq_nm']}** - {result['rfq_no']} - No open protests."
 
-        items += [build_textblock(content), build_textblock("")]
+            items += [build_textblock(content), build_textblock("")]
+            n += 1
+        else:
+            no_protest_results.append(result)
+
+    if no_protest_results:
+        names = ", ".join(result["rfq_nm"] for result in no_protest_results)
+        items += [
+            build_textblock(
+                f"**{n}.** Other tracked bids with no open protests: {names}"
+            ),
+            build_textblock(""),
+        ]
 
     return items
 

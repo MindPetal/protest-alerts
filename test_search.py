@@ -338,7 +338,7 @@ def test_format_roundup():
         },
         {
             "type": "TextBlock",
-            "text": "**2. Test RFQ Name2** - 987654321 - No open protests.",
+            "text": "**2.** Other tracked bids with no open protests: Test RFQ Name2",
             "wrap": True,
         },
         {
@@ -394,7 +394,7 @@ def test_process_roundup(mocker):
         },
         {
             "type": "TextBlock",
-            "text": "**2. Test RFQ Name2** - 987654321 - No open protests.",
+            "text": "**2.** Other tracked bids with no open protests: Test RFQ Name2",
             "wrap": True,
         },
         {

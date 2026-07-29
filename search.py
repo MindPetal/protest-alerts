@@ -253,6 +253,37 @@ def build_textblock(content: str) -> dict:
     return {"type": "TextBlock", "text": content, "wrap": True}
 
 
+def build_cell(content: str) -> dict:
+    # Build a single TableCell
+    return {"type": "TableCell", "items": [build_textblock(content)]}
+
+
+def fmt_date(value: str) -> str:
+    # Normalize a date string like "Feb 2, 2024" to mm/dd/yyyy
+    try:
+        return datetime.strptime(value, "%b %d, %Y").strftime("%m/%d/%Y")
+    except (ValueError, TypeError):
+        return value
+
+
+def build_header_row(labels: list[str]) -> dict:
+    # Build the styled header TableRow
+    return {
+        "type": "TableRow",
+        "style": "accent",
+        "cells": [build_cell(f"**{label}**") for label in labels],
+    }
+
+
+def build_row(values: list[str], stripe_index: int) -> dict:
+    # Build a striped multi-cell TableRow
+    return {
+        "type": "TableRow",
+        "style": "emphasis" if stripe_index % 2 else "default",
+        "cells": [build_cell(value) for value in values],
+    }
+
+
 def format_results(raw_results: list[dict]) -> list:
     # Format results strings
 
@@ -284,34 +315,48 @@ def format_results(raw_results: list[dict]) -> list:
 
 
 def format_roundup(raw_results: list[dict]) -> list:
-    # Format weekly roundup strings
+    # Format weekly roundup as a full-width bid header above a compact table
 
     header = f"**{date.today().strftime('%A, %m/%d/%Y')}.** Weekly roundup of open GAO protests for tracked bids."
-    items = [build_textblock(header), build_textblock("")]
 
+    items = [build_textblock(header), build_textblock("")]
     no_protest_results = []
-    n = 1
 
     for result in raw_results:
-        if result["protest_details"]:
-            content = f"**{n}. {result['rfq_nm']}** - {result['rfq_no']} - [View on GAO]({result['url']})"
-
-            for detail in result["protest_details"]:
-                # Open protest
-                content += f"\n\n- {detail['company']}, filed {detail['filed_dt']}, due {detail['due_dt']}"
-
-            items += [build_textblock(content), build_textblock("")]
-            n += 1
-        else:
+        if not result["protest_details"]:
             no_protest_results.append(result)
+            continue
+
+        bid = f"**{result['rfq_nm']}** - [View on GAO]({result['url']})"
+        rows = [build_header_row(["Company", "Filed", "Due"])]
+
+        for stripe_index, detail in enumerate(result["protest_details"]):
+            rows.append(
+                build_row(
+                    [
+                        detail["company"],
+                        fmt_date(detail["filed_dt"]),
+                        fmt_date(detail["due_dt"]),
+                    ],
+                    stripe_index,
+                )
+            )
+
+        table = {
+            "type": "Table",
+            "columns": [{"width": 2}, {"width": 1}, {"width": 1}],
+            "firstRowAsHeaders": True,
+            "gridStyle": "default",
+            "rows": rows,
+        }
+
+        items += [build_textblock(bid), table, build_textblock("")]
 
     if no_protest_results:
         names = ", ".join(result["rfq_nm"] for result in no_protest_results)
         items += [
-            build_textblock(
-                f"**{n}.** Other tracked bids with no open protests: {names}"
-            ),
             build_textblock(""),
+            build_textblock(f"**Tracked bids with no open protests:** {names}"),
         ]
 
     return items

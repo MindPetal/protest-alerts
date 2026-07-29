@@ -5,7 +5,8 @@ name: Protest-Roundup-Run
 on:
   workflow_dispatch:
   schedule:
-    - cron: '30 19 * * 5'
+    # 3:00pm EDT (19:00 UTC) on Fridays
+    - cron: '0 19 * * 5'
 
 permissions:
   contents: read

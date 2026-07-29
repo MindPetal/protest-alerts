@@ -328,7 +328,84 @@ def test_format_roundup():
         },
         {
             "type": "TextBlock",
-            "text": "**1. Test RFQ Name** - 123456789 - [View on GAO](https://example.com)\n\n- Test Company, filed Feb 2, 2024, due May 2, 2024",
+            "text": "**Test RFQ Name** - [View on GAO](https://example.com)",
+            "wrap": True,
+        },
+        {
+            "type": "Table",
+            "columns": [{"width": 2}, {"width": 1}, {"width": 1}],
+            "firstRowAsHeaders": True,
+            "gridStyle": "default",
+            "rows": [
+                {
+                    "type": "TableRow",
+                    "style": "accent",
+                    "cells": [
+                        {
+                            "type": "TableCell",
+                            "items": [
+                                {
+                                    "type": "TextBlock",
+                                    "text": "**Company**",
+                                    "wrap": True,
+                                }
+                            ],
+                        },
+                        {
+                            "type": "TableCell",
+                            "items": [
+                                {"type": "TextBlock", "text": "**Filed**", "wrap": True}
+                            ],
+                        },
+                        {
+                            "type": "TableCell",
+                            "items": [
+                                {"type": "TextBlock", "text": "**Due**", "wrap": True}
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "type": "TableRow",
+                    "style": "default",
+                    "cells": [
+                        {
+                            "type": "TableCell",
+                            "items": [
+                                {
+                                    "type": "TextBlock",
+                                    "text": "Test Company",
+                                    "wrap": True,
+                                }
+                            ],
+                        },
+                        {
+                            "type": "TableCell",
+                            "items": [
+                                {
+                                    "type": "TextBlock",
+                                    "text": "02/02/2024",
+                                    "wrap": True,
+                                }
+                            ],
+                        },
+                        {
+                            "type": "TableCell",
+                            "items": [
+                                {
+                                    "type": "TextBlock",
+                                    "text": "05/02/2024",
+                                    "wrap": True,
+                                }
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            "type": "TextBlock",
+            "text": "",
             "wrap": True,
         },
         {
@@ -338,12 +415,7 @@ def test_format_roundup():
         },
         {
             "type": "TextBlock",
-            "text": "**2.** Other tracked bids with no open protests: Test RFQ Name2",
-            "wrap": True,
-        },
-        {
-            "type": "TextBlock",
-            "text": "",
+            "text": "**Tracked bids with no open protests:** Test RFQ Name2",
             "wrap": True,
         },
     ]
@@ -384,7 +456,84 @@ def test_process_roundup(mocker):
         },
         {
             "type": "TextBlock",
-            "text": "**1. Test RFQ Name** - 123456789 - [View on GAO](https://example.com)\n\n- Test Company, filed Feb 2, 2024, due May 2, 2024",
+            "text": "**Test RFQ Name** - [View on GAO](https://example.com)",
+            "wrap": True,
+        },
+        {
+            "type": "Table",
+            "columns": [{"width": 2}, {"width": 1}, {"width": 1}],
+            "firstRowAsHeaders": True,
+            "gridStyle": "default",
+            "rows": [
+                {
+                    "type": "TableRow",
+                    "style": "accent",
+                    "cells": [
+                        {
+                            "type": "TableCell",
+                            "items": [
+                                {
+                                    "type": "TextBlock",
+                                    "text": "**Company**",
+                                    "wrap": True,
+                                }
+                            ],
+                        },
+                        {
+                            "type": "TableCell",
+                            "items": [
+                                {"type": "TextBlock", "text": "**Filed**", "wrap": True}
+                            ],
+                        },
+                        {
+                            "type": "TableCell",
+                            "items": [
+                                {"type": "TextBlock", "text": "**Due**", "wrap": True}
+                            ],
+                        },
+                    ],
+                },
+                {
+                    "type": "TableRow",
+                    "style": "default",
+                    "cells": [
+                        {
+                            "type": "TableCell",
+                            "items": [
+                                {
+                                    "type": "TextBlock",
+                                    "text": "Test Company",
+                                    "wrap": True,
+                                }
+                            ],
+                        },
+                        {
+                            "type": "TableCell",
+                            "items": [
+                                {
+                                    "type": "TextBlock",
+                                    "text": "02/02/2024",
+                                    "wrap": True,
+                                }
+                            ],
+                        },
+                        {
+                            "type": "TableCell",
+                            "items": [
+                                {
+                                    "type": "TextBlock",
+                                    "text": "05/02/2024",
+                                    "wrap": True,
+                                }
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            "type": "TextBlock",
+            "text": "",
             "wrap": True,
         },
         {
@@ -394,15 +543,60 @@ def test_process_roundup(mocker):
         },
         {
             "type": "TextBlock",
-            "text": "**2.** Other tracked bids with no open protests: Test RFQ Name2",
-            "wrap": True,
-        },
-        {
-            "type": "TextBlock",
-            "text": "",
+            "text": "**Tracked bids with no open protests:** Test RFQ Name2",
             "wrap": True,
         },
     ]
 
     mocker.patch("search.search", side_effect=fake_search)
     assert items == search.process_search(rfq_list, "roundup")
+
+
+def test_format_roundup_multiple_protests_blank_bid():
+    """A solicitation with multiple open protests renders one full-width bid
+    header above a single table containing a row per protest."""
+    raw_results = [
+        {
+            "index": 1,
+            "rfq_no": "123456789",
+            "rfq_nm": "Test RFQ Name",
+            "protest_details": [
+                {
+                    "company": "Company A",
+                    "status": "Opened",
+                    "type": "Bid Protest",
+                    "filed_dt": "Feb 2, 2024",
+                    "due_dt": "May 2, 2024",
+                },
+                {
+                    "company": "Company B",
+                    "status": "Opened",
+                    "type": "Bid Protest",
+                    "filed_dt": "Feb 3, 2024",
+                    "due_dt": "May 3, 2024",
+                },
+            ],
+            "url": "https://example.com",
+        },
+    ]
+
+    items = search.format_roundup(raw_results)
+    bid_header = next(
+        item
+        for item in items
+        if item["type"] == "TextBlock" and item["text"].startswith("**Test RFQ Name**")
+    )
+    table = next(item for item in items if item["type"] == "Table")
+
+    # Bid appears once as a full-width header, not inside the table.
+    assert bid_header["text"] == (
+        "**Test RFQ Name** - [View on GAO](https://example.com)"
+    )
+
+    # Header row plus one striped row per protest.
+    assert table["rows"][1]["style"] == "default"
+    assert table["rows"][2]["style"] == "emphasis"
+    assert table["rows"][1]["cells"][0]["items"][0]["text"] == "Company A"
+    assert table["rows"][2]["cells"][0]["items"][0]["text"] == "Company B"
+    assert table["rows"][1]["cells"][1]["items"][0]["text"] == "02/02/2024"
+    assert table["rows"][2]["cells"][2]["items"][0]["text"] == "05/03/2024"

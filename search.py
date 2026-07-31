@@ -16,15 +16,10 @@ log = logging.getLogger("search")
 logging.basicConfig(level=logging.INFO)
 
 
-def get_details_page(i: int, page: Page, context: BrowserContext) -> Page:
+def get_details_page(href: str, context: BrowserContext) -> Page:
     # Go to details page
 
-    details_link = (
-        page.locator("div.teaser-search--heading h4.heading a")
-        .nth(i)
-        .get_attribute("href")
-    )
-    details_url = f"https://www.gao.gov{details_link}"
+    details_url = f"https://www.gao.gov{href}"
     new_tab = context.new_page()
     new_tab.goto(details_url)
     return new_tab
@@ -85,7 +80,8 @@ def search(rfq_no: str, yday: str, roundup: bool = False) -> tuple[list[dict], s
             browser.close()
             raise Exception(f"Received HTTP {response.status}")
 
-        protest_count = page.locator("div.teaser-search--bookmark").count()
+        cards = page.locator("article.node--type-bid-protest-docket")
+        protest_count = cards.count()
         log.info(f"{protest_count} protests found")
 
         if protest_count > 0:
@@ -99,104 +95,25 @@ def search(rfq_no: str, yday: str, roundup: bool = False) -> tuple[list[dict], s
                 f"{closed_protest_count} closed protests, {open_protest_count} open protests"
             )
 
-            for i in range(0 if roundup else closed_protest_count):
+            # Iterate each protest card and scope all lookups to that card so
+            # open/closed status, headings and details always refer to the same
+            # protest, regardless of how open and closed protests are interleaved.
+            for i in range(protest_count):
+                card = cards.nth(i)
                 protest_info = {}
 
-                if (
-                    page.locator("div.teaser-search--outcome .field__item")
-                    .nth(i)
-                    .is_visible()
-                ):
-                    # Closed protest
+                heading_href = card.locator(
+                    "div.teaser-search--heading h4.heading a"
+                ).get_attribute("href")
+                is_open = (
+                    card.locator("div.teaser-search--status .field__item").count() > 0
+                )
 
-                    decided_dt = (
-                        page.locator("div.teaser-search--decision_date .field__item")
-                        .nth(i)
-                        .inner_text()
-                        .strip()
-                    )
-
-                    log.info(f"Decided date: {decided_dt}")
-
-                    if decided_dt == yday:
-                        log.info("Protest updated")
-                        protest_info["company"] = (
-                            page.locator("div.teaser-search--heading h4.heading")
-                            .nth(i)
-                            .inner_text()
-                            .split(" (")[0]
-                            .strip()
-                        )
-                        protest_info["status"] = (
-                            page.locator("div.teaser-search--outcome .field__item")
-                            .nth(i)
-                            .inner_text()
-                            .strip()
-                        )
-                        protest_info["decided_dt"] = (
-                            page.locator(
-                                "div.teaser-search--decision_date .field__item"
-                            )
-                            .nth(i)
-                            .inner_text()
-                            .strip()
-                        )
-
-                        # Walk decision_date/decision siblings in DOM order to match decision link to protest index
-                        href = page.evaluate(
-                            """
-                            (i) => {
-                                const nodes = Array.from(document.querySelectorAll(
-                                    'div.teaser-search--decision_date, div.teaser-search-decision'
-                                ));
-                                let count = 0;
-                                for (let j = 0; j < nodes.length; j++) {
-                                    if (nodes[j].matches('div.teaser-search--decision_date')) {
-                                        if (count === i) {
-                                            const next = nodes[j + 1];
-                                            if (next && next.matches('div.teaser-search-decision')) {
-                                                const a = next.querySelector('a');
-                                                return a ? a.getAttribute('href') : null;
-                                            }
-                                            return null;
-                                        }
-                                        count++;
-                                    }
-                                }
-                                return null;
-                            }
-                            """,
-                            i,
-                        )
-                        if href:
-                            # Decision report published
-                            protest_info["decision_url"] = href.strip()
-
-                        # Go to details page
-                        details_page = get_details_page(i, page, context)
-
-                        protest_info["type"] = (
-                            details_page.locator(
-                                "div.field--name-field-case-type .field__item"
-                            )
-                            .inner_text()
-                            .strip()
-                        )
-
-                        protest_details.append(protest_info)
-
-            for i in range(open_protest_count):
-                protest_info = {}
-
-                if (
-                    page.locator("div.teaser-search--status .field__item")
-                    .nth(i)
-                    .is_visible()
-                ):
+                if is_open:
                     # Open protest
 
                     # Go to details page
-                    details_page = get_details_page(i, page, context)
+                    details_page = get_details_page(heading_href, context)
 
                     filed_dt = (
                         details_page.locator(
@@ -209,15 +126,13 @@ def search(rfq_no: str, yday: str, roundup: bool = False) -> tuple[list[dict], s
                     if roundup or filed_dt == yday:
                         log.info("Opened protest")
                         protest_info["company"] = (
-                            page.locator("div.teaser-search--heading h4.heading")
-                            .nth(i)
+                            card.locator("div.teaser-search--heading h4.heading")
                             .inner_text()
                             .split(" (")[0]
                             .strip()
                         )
                         protest_info["status"] = (
-                            page.locator("div.teaser-search--status .field__item")
-                            .nth(i)
+                            card.locator("div.teaser-search--status .field__item")
                             .inner_text()
                             .strip()
                         )
@@ -240,6 +155,56 @@ def search(rfq_no: str, yday: str, roundup: bool = False) -> tuple[list[dict], s
                             .inner_text()
                             .strip()
                         )
+
+                        protest_details.append(protest_info)
+
+                    details_page.close()
+
+                elif not roundup:
+                    # Closed protest (skipped entirely in roundup mode)
+
+                    decided_dt = (
+                        card.locator("div.teaser-search--decision_date .field__item")
+                        .inner_text()
+                        .strip()
+                    )
+
+                    log.info(f"Decided date: {decided_dt}")
+
+                    if decided_dt == yday:
+                        log.info("Protest updated")
+                        protest_info["company"] = (
+                            card.locator("div.teaser-search--heading h4.heading")
+                            .inner_text()
+                            .split(" (")[0]
+                            .strip()
+                        )
+                        protest_info["status"] = (
+                            card.locator("div.teaser-search--outcome .field__item")
+                            .inner_text()
+                            .strip()
+                        )
+                        protest_info["decided_dt"] = decided_dt
+
+                        decision_link = card.locator("div.teaser-search-decision a")
+                        if decision_link.count() > 0:
+                            href = decision_link.first.get_attribute("href")
+                            if href:
+                                # Decision report published
+                                protest_info["decision_url"] = href.strip()
+
+                        # Go to details page
+                        details_page = get_details_page(heading_href, context)
+
+                        protest_info["type"] = (
+                            details_page.locator(
+                                "div.field--name-field-case-type .field__item"
+                            )
+                            .inner_text()
+                            .strip()
+                        )
+
+                        details_page.close()
 
                         protest_details.append(protest_info)
 

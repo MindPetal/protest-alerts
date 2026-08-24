@@ -103,7 +103,7 @@ def search(rfq_no: str, yday: str, roundup: bool = False) -> tuple[list[dict], s
                 protest_info = {}
 
                 heading_href = card.locator(
-                    "div.teaser-search--heading h4.heading a"
+                    "div.teaser-search--heading h3.heading a"
                 ).get_attribute("href")
                 is_open = (
                     card.locator("div.teaser-search--status .field__item").count() > 0
@@ -126,7 +126,7 @@ def search(rfq_no: str, yday: str, roundup: bool = False) -> tuple[list[dict], s
                     if roundup or filed_dt == yday:
                         log.info("Opened protest")
                         protest_info["company"] = (
-                            card.locator("div.teaser-search--heading h4.heading")
+                            card.locator("div.teaser-search--heading h3.heading")
                             .inner_text()
                             .split(" (")[0]
                             .strip()
@@ -174,7 +174,7 @@ def search(rfq_no: str, yday: str, roundup: bool = False) -> tuple[list[dict], s
                     if decided_dt == yday:
                         log.info("Protest updated")
                         protest_info["company"] = (
-                            card.locator("div.teaser-search--heading h4.heading")
+                            card.locator("div.teaser-search--heading h3.heading")
                             .inner_text()
                             .split(" (")[0]
                             .strip()

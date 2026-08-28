@@ -5,7 +5,7 @@ name: Protest-Alerts-Run
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 24 * * *'
+    - cron: '24 11 * * *'
 
 permissions:
   contents: read

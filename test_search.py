@@ -600,3 +600,54 @@ def test_format_roundup_multiple_protests_blank_bid():
     assert table["rows"][2]["cells"][0]["items"][0]["text"] == "Company B"
     assert table["rows"][1]["cells"][1]["items"][0]["text"] == "02/02/2024"
     assert table["rows"][2]["cells"][2]["items"][0]["text"] == "05/03/2024"
+
+
+def test_format_roundup_no_open_protests():
+    """When no tracked bid has an open protest, a 'No protests.' line appears
+    below the header, above the no-open-protests list."""
+    raw_results = [
+        {
+            "index": 1,
+            "rfq_no": "123456789",
+            "rfq_nm": "Test RFQ Name",
+            "protest_details": [],
+            "url": "https://example.com",
+        },
+        {
+            "index": 2,
+            "rfq_no": "987654321",
+            "rfq_nm": "Test RFQ Name2",
+            "protest_details": [],
+            "url": "https://example.com",
+        },
+    ]
+
+    items = [
+        {
+            "type": "TextBlock",
+            "text": f"**{date.today().strftime('%A, %m/%d/%Y')}.** Weekly roundup of open GAO protests for tracked bids.",
+            "wrap": True,
+        },
+        {
+            "type": "TextBlock",
+            "text": "",
+            "wrap": True,
+        },
+        {
+            "type": "TextBlock",
+            "text": "No protests.",
+            "wrap": True,
+        },
+        {
+            "type": "TextBlock",
+            "text": "",
+            "wrap": True,
+        },
+        {
+            "type": "TextBlock",
+            "text": "**Tracked bids with no open protests:** Test RFQ Name, Test RFQ Name2",
+            "wrap": True,
+        },
+    ]
+
+    assert items == search.format_roundup(raw_results)

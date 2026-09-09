@@ -286,11 +286,14 @@ def format_roundup(raw_results: list[dict]) -> list:
 
     items = [build_textblock(header), build_textblock("")]
     no_protest_results = []
+    has_open_protests = False
 
     for result in raw_results:
         if not result["protest_details"]:
             no_protest_results.append(result)
             continue
+
+        has_open_protests = True
 
         bid = f"**{result['rfq_nm']}** - [View on GAO]({result['url']})"
         rows = [build_header_row(["Company", "Filed", "Due"])]
@@ -316,6 +319,9 @@ def format_roundup(raw_results: list[dict]) -> list:
         }
 
         items += [build_textblock(bid), table, build_textblock("")]
+
+    if not has_open_protests:
+        items.append(build_textblock("No protests."))
 
     if no_protest_results:
         names = ", ".join(result["rfq_nm"] for result in no_protest_results)

@@ -44,10 +44,14 @@ uv run pytest test_search.py
 
 Execute daily alert:
 ```sh
-uv run python3 search.py 'my-rfq-list' 'my-ms-webhook-url' daily
+RFQ_LIST='my-rfq-list' \
+MS_URL='my-ms-webhook-url' \
+uv run python3 search.py daily
 ```
 
 Execute roundup:
 ```sh
-uv run python3 search.py 'my-rfq-list' 'my-ms-webhook-url' roundup
+RFQ_LIST='my-rfq-list' \
+MS_URL='my-ms-webhook-url' \
+uv run python3 search.py roundup
 ```

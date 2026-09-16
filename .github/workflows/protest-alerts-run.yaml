@@ -28,4 +28,4 @@ jobs:
       env:
         RFQ_LIST: ${{ secrets.RFQ_LIST }}
         MS_URL: ${{ secrets.MS_URL }}
-      run: uv run python3 search.py "$RFQ_LIST" "$MS_URL" daily
+      run: uv run python3 search.py daily

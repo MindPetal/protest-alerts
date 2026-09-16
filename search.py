@@ -4,6 +4,7 @@ from GAO and post results to MS Teams.
 """
 
 import logging
+import os
 import sys
 from datetime import date, datetime, timedelta
 
@@ -417,7 +418,6 @@ def main(rfq_list: str, ms_webhook_url: str, mode: str) -> None:
         log.info("No protest updates found")
 
 
-""" Read in rfq_list, ms_webhook_url, mode (daily|roundup)
-"""
+""" Read in rfq_list, ms_webhook_url, mode (daily|roundup) """
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2], sys.argv[3])
+    main(os.environ["RFQ_LIST"], os.environ["MS_URL"], sys.argv[1])

@@ -1,6 +1,6 @@
 # Install Python dependencies, run the weekly open-protest roundup.
 
-name: Protest-Roundup-Run
+name: protest-roundup-run
 
 on:
   workflow_dispatch:
@@ -30,4 +30,4 @@ jobs:
       env:
         RFQ_LIST: ${{ secrets.RFQ_LIST }}
         MS_URL: ${{ secrets.MS_URL }}
-      run: uv run python3 search.py roundup
+      run: uv run protest-alerts roundup

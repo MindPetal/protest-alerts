@@ -1,6 +1,6 @@
 [project]
 name = "protest-alerts"
-version = "1.0.0"
+version = "1.0.1"
 description = "GAO protest search and post to a chat channel (MS Teams)"
 readme = "README.md"
 requires-python = ">=3.13"

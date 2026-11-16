@@ -1,7 +1,7 @@
 [project]
 name = "protest-alerts"
 version = "1.0.0"
-description = "GAO protest search and post to MS Teams"
+description = "GAO protest search and post to a chat channel (MS Teams)"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -12,6 +12,16 @@ dependencies = [
     "six>=1.10",
     "urllib3>=2.7.0",
 ]
+
+[project.scripts]
+protest-alerts = "protest_alerts.__main__:run"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/protest_alerts", "src/client"]
 
 [dependency-groups]
 dev = [
@@ -24,20 +34,24 @@ dev = [
 [tool.ruff]
 line-length = 88
 target-version = "py313"
-exclude = ["client/", "build/"]
+src = ["src"]
+exclude = ["src/client/", "build/"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
 ignore = ["E501"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["client", "search"]
+known-first-party = ["client", "protest_alerts"]
 
 [tool.ty.environment]
 python-version = "3.13"
 
 [tool.ty.src]
-exclude = ["client/", "build/"]
+exclude = ["src/client/", "build/"]
 
 [tool.ty.rules]
 invalid-argument-type = "warn"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

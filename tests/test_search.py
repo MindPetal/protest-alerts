@@ -4,6 +4,8 @@ Tests for search.py
 
 from datetime import date
 
+import pytest
+
 from protest_alerts import search, teams
 from protest_alerts.config import RfqEntry, Settings, parse_rfq_list
 
@@ -233,8 +235,18 @@ def test_process_search_returns_numbered_results(mocker):
     ]
 
 
-def settings(mode: str, rfqs: tuple[RfqEntry, ...] = ()) -> Settings:
-    return Settings(rfqs=rfqs, ms_webhook_url="https://webhook.example.com", mode=mode)
+def settings(
+    mode: str,
+    rfqs: tuple[RfqEntry, ...] = (),
+    ms_webhook_url: str = "https://webhook.example.com",
+    slack_webhook_url: str = "",
+) -> Settings:
+    return Settings(
+        rfqs=rfqs,
+        ms_webhook_url=ms_webhook_url,
+        mode=mode,
+        slack_webhook_url=slack_webhook_url,
+    )
 
 
 def test_main_posts_results(mocker):
@@ -273,3 +285,58 @@ def test_main_roundup_posts_even_without_solicitations(mocker):
 
     mock_post.assert_called_once()
     assert "No protests." in [item["text"] for item in mock_post.call_args.args[1]]
+
+
+SLACK_URL = "https://hooks.slack.com/services/T/B/X"
+
+
+def test_main_posts_to_slack_only(mocker):
+    results = [{"index": 1}]
+    mocker.patch("protest_alerts.search.process_search", return_value=results)
+    mock_teams_post = mocker.patch("protest_alerts.teams.post")
+    mock_slack_format = mocker.patch(
+        "protest_alerts.slack.format_results", return_value=["blocks"]
+    )
+    mock_slack_post = mocker.patch("protest_alerts.slack.post")
+
+    search.main(settings("daily", ms_webhook_url="", slack_webhook_url=SLACK_URL))
+
+    mock_teams_post.assert_not_called()
+    mock_slack_format.assert_called_once_with(results, "daily")
+    mock_slack_post.assert_called_once_with(SLACK_URL, ["blocks"])
+
+
+def test_main_roundup_posts_to_both(mocker):
+    mocker.patch("protest_alerts.search.process_search", return_value=[])
+    mock_teams_post = mocker.patch("protest_alerts.teams.post")
+    mock_slack_post = mocker.patch("protest_alerts.slack.post")
+
+    search.main(settings("roundup", slack_webhook_url=SLACK_URL))
+
+    mock_teams_post.assert_called_once()
+    slack_texts = [block["text"] for block in mock_slack_post.call_args.args[1]]
+    assert "No protests." in slack_texts
+
+
+def test_main_daily_no_updates_skips_both(mocker):
+    mocker.patch("protest_alerts.search.process_search", return_value=[])
+    mock_teams_post = mocker.patch("protest_alerts.teams.post")
+    mock_slack_post = mocker.patch("protest_alerts.slack.post")
+
+    search.main(settings("daily", slack_webhook_url=SLACK_URL))
+
+    mock_teams_post.assert_not_called()
+    mock_slack_post.assert_not_called()
+
+
+def test_main_teams_failure_still_posts_slack(mocker):
+    mocker.patch("protest_alerts.search.process_search", return_value=[{"index": 1}])
+    mocker.patch("protest_alerts.teams.format_results", return_value=["items"])
+    mocker.patch("protest_alerts.teams.post", side_effect=Exception("boom"))
+    mocker.patch("protest_alerts.slack.format_results", return_value=["blocks"])
+    mock_slack_post = mocker.patch("protest_alerts.slack.post")
+
+    with pytest.raises(RuntimeError, match="Posting failed for: teams"):
+        search.main(settings("daily", slack_webhook_url=SLACK_URL))
+
+    mock_slack_post.assert_called_once_with(SLACK_URL, ["blocks"])

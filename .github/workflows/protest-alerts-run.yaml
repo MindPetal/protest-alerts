@@ -30,4 +30,5 @@ jobs:
       env:
         RFQ_LIST: ${{ secrets.RFQ_LIST }}
         MS_URL: ${{ secrets.MS_URL }}
+        SLACK_URL: ${{ secrets.SLACK_URL }}
       run: uv run protest-alerts daily

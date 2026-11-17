@@ -66,3 +66,22 @@ def test_run_rejects_missing_or_bad_mode(mocker, argv):
         entry.run(argv)
 
     mock_main.assert_not_called()
+
+
+def test_settings_from_env_slack_only():
+    settings = Settings.from_env(
+        mode="daily",
+        env={
+            "RFQ_LIST": "123456789:My RFQ",
+            "SLACK_URL": " https://hooks.slack.com/services/T/B/X ",
+        },
+    )
+
+    assert settings.ms_webhook_url == ""
+    assert settings.slack_webhook_url == "https://hooks.slack.com/services/T/B/X"
+
+
+@pytest.mark.parametrize("env", [{}, {"MS_URL": "", "SLACK_URL": " "}])
+def test_settings_from_env_requires_a_channel(env):
+    with pytest.raises(ValueError, match="MS_URL, SLACK_URL"):
+        Settings.from_env(mode="daily", env={"RFQ_LIST": "", **env})

@@ -3,11 +3,9 @@ Build MS Teams Adaptive Card content and post it to a Teams webhook.
 
 Each chat destination gets its own module with the same interface:
 format_results(results, mode) -> payload items, and post(webhook_url, items).
-Another destination, such as Slack, would be a sibling module (slack.py).
 """
 
 import logging
-from datetime import date
 
 import client
 from client.rest import ApiException
@@ -50,25 +48,10 @@ def format_daily(raw_results: list[dict]) -> list:
     items = []
 
     if raw_results:
-        header = f"**{date.today().strftime('%A, %m/%d/%Y')}.** Protest updates."
-        items += [build_textblock(header), build_textblock("")]
+        items += [build_textblock(results.daily_header()), build_textblock("")]
 
         for result in raw_results:
-            content = f"**{result['index']}. {result['rfq_nm']}** - {result['rfq_no']} - [View on GAO]({result['url']})"
-
-            for detail in result["protest_details"]:
-                if "decided_dt" in detail:
-                    # Case closed
-                    content += f"\n\n- {detail['company']} | {detail['type']} {detail['status']} | Decided {detail['decided_dt']}"
-
-                    if "decision_url" in detail:
-                        # Decision report published
-                        content += f" | [View decision](https://www.gao.gov{detail['decision_url']})"
-
-                elif "filed_dt" in detail:
-                    # Case opened
-                    content += f"\n\n- {detail['company']} | {detail['type']} Opened | Filed {detail['filed_dt']} | Due {detail['due_dt']}"
-
+            content = results.daily_content(result)
             items += [build_textblock(content), build_textblock("")]
 
     return items
@@ -77,9 +60,7 @@ def format_daily(raw_results: list[dict]) -> list:
 def format_roundup(raw_results: list[dict]) -> list:
     # Format weekly roundup as a full-width bid header above a compact table
 
-    header = f"**{date.today().strftime('%A, %m/%d/%Y')}.** Weekly roundup of open GAO protests for tracked bids."
-
-    items = [build_textblock(header), build_textblock("")]
+    items = [build_textblock(results.roundup_header()), build_textblock("")]
     no_protest_results = []
     has_open_protests = False
 
@@ -90,20 +71,11 @@ def format_roundup(raw_results: list[dict]) -> list:
 
         has_open_protests = True
 
-        bid = f"**{result['rfq_nm']}** - [View on GAO]({result['url']})"
-        rows = [build_header_row(["Company", "Filed", "Due"])]
+        bid = results.roundup_bid(result)
+        rows = [build_header_row(results.ROUNDUP_COLUMNS)]
 
         for stripe_index, detail in enumerate(result["protest_details"]):
-            rows.append(
-                build_row(
-                    [
-                        detail["company"],
-                        results.fmt_date(detail["filed_dt"]),
-                        results.fmt_date(detail["due_dt"]),
-                    ],
-                    stripe_index,
-                )
-            )
+            rows.append(build_row(results.roundup_row(detail), stripe_index))
 
         table = {
             "type": "Table",
@@ -116,13 +88,12 @@ def format_roundup(raw_results: list[dict]) -> list:
         items += [build_textblock(bid), table, build_textblock("")]
 
     if not has_open_protests:
-        items.append(build_textblock("No protests."))
+        items.append(build_textblock(results.NO_PROTESTS))
 
     if no_protest_results:
-        names = ", ".join(result["rfq_nm"] for result in no_protest_results)
         items += [
             build_textblock(""),
-            build_textblock(f"**Tracked bids with no open protests:** {names}"),
+            build_textblock(results.no_protest_summary(no_protest_results)),
         ]
 
     return items

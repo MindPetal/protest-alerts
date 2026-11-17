@@ -1,13 +1,13 @@
 """
 Run the GAO search for each tracked solicitation and post the results to the
-chat channel.
+configured chat channels (MS Teams and/or Slack).
 """
 
 import logging
 from collections.abc import Iterable
 from datetime import datetime, timedelta
 
-from protest_alerts import gao, teams
+from protest_alerts import gao, slack, teams
 from protest_alerts.config import RfqEntry, Settings
 
 log = logging.getLogger(__name__)
@@ -52,10 +52,40 @@ def main(settings: Settings) -> None:
     log.info("Start processing")
 
     results = process_search(settings.rfqs, settings.mode)
-    items = teams.format_results(results, settings.mode)
+    post_results(settings, results)
 
-    if items:
-        log.info("Posting results")
-        teams.post(settings.ms_webhook_url, items)
-    else:
+
+def post_results(settings: Settings, results: list[dict]) -> None:
+    # Post to every configured chat channel. A failure on one channel doesn't
+    # stop the others, but the run still fails afterwards.
+    channels = [
+        (teams, settings.ms_webhook_url),
+        (slack, settings.slack_webhook_url),
+    ]
+    failed = []
+    posted = False
+
+    for channel, webhook_url in channels:
+        if not webhook_url:
+            continue
+
+        items = channel.format_results(results, settings.mode)
+
+        if not items:
+            continue
+
+        name = channel.__name__.rsplit(".", 1)[-1]
+        log.info("Posting results to %s", name)
+
+        try:
+            channel.post(webhook_url, items)
+            posted = True
+        except Exception:
+            log.exception("Posting results to %s failed", name)
+            failed.append(name)
+
+    if failed:
+        raise RuntimeError(f"Posting failed for: {', '.join(failed)}")
+
+    if not posted:
         log.info("No protest updates found")

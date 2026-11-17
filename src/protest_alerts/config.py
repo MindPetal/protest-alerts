@@ -20,20 +20,37 @@ class Settings:
     rfqs: tuple[RfqEntry, ...]
     ms_webhook_url: str
     mode: str
+    slack_webhook_url: str = ""
 
     @classmethod
     def from_env(cls, mode: str, env: Mapping[str, str] = os.environ) -> "Settings":
         """
-        Read RFQ_LIST and MS_URL from the environment
+        Read RFQ_LIST and at least one of MS_URL / SLACK_URL from the environment
         """
         if mode not in MODES:
             raise ValueError(f"Invalid mode '{mode}': expected one of {MODES}")
 
+        ms_webhook_url, slack_webhook_url = read_webhook_urls(env)
+
         return cls(
             rfqs=tuple(parse_rfq_list(env["RFQ_LIST"])),
-            ms_webhook_url=env["MS_URL"],
+            ms_webhook_url=ms_webhook_url,
             mode=mode,
+            slack_webhook_url=slack_webhook_url,
         )
+
+
+def read_webhook_urls(env: Mapping[str, str]) -> tuple[str, str]:
+    """
+    Read the MS Teams and Slack webhook URLs. Either may be blank, but not both.
+    """
+    ms_webhook_url = env.get("MS_URL", "").strip()
+    slack_webhook_url = env.get("SLACK_URL", "").strip()
+
+    if not ms_webhook_url and not slack_webhook_url:
+        raise ValueError("Set MS_URL, SLACK_URL, or both")
+
+    return ms_webhook_url, slack_webhook_url
 
 
 def parse_rfq_list(rfq_list: str) -> list[RfqEntry]:

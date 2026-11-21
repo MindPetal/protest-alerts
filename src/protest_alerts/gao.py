@@ -3,10 +3,25 @@ Scrape bid protest dockets from the GAO website with Playwright.
 """
 
 import logging
+from http import HTTPStatus
 
 from playwright.sync_api import BrowserContext, Page, sync_playwright
 
 log = logging.getLogger(__name__)
+
+
+class GaoHttpError(Exception):
+    # GAO returned a non-200 status for a search or details page
+    def __init__(self, status: int):
+        self.status = status
+        # GAO serves HTTP/2, which sends no status text, so use the standard
+        # reason phrase
+        try:
+            self.message = HTTPStatus(status).phrase
+        except ValueError:
+            self.message = "Unknown error"
+
+        super().__init__(f"HTTP {status} received: {self.message}")
 
 
 def get_details_page(href: str, context: BrowserContext) -> Page:
@@ -14,8 +29,18 @@ def get_details_page(href: str, context: BrowserContext) -> Page:
 
     details_url = f"https://www.gao.gov{href}"
     new_tab = context.new_page()
-    new_tab.goto(details_url)
+    response = new_tab.goto(details_url)
+
+    if response is not None and response.status != 200:
+        new_tab.close()
+        raise GaoHttpError(response.status)
+
     return new_tab
+
+
+def search_url(rfq_no: str) -> str:
+    # GAO bid protest search for a solicitation number
+    return f"https://www.gao.gov/legal/bid-protests/search?processed=1&solicitation={rfq_no}&outcome=all#s-skipLinkTargetForMainSearchResults"
 
 
 def search(rfq_no: str, yday: str, roundup: bool = False) -> tuple[list[dict], str]:
@@ -23,7 +48,7 @@ def search(rfq_no: str, yday: str, roundup: bool = False) -> tuple[list[dict], s
     # roundup=False (daily): report protests from yesterday
     # roundup=True (weekly): report open protests, not date bound
 
-    url = f"https://www.gao.gov/legal/bid-protests/search?processed=1&solicitation={rfq_no}&outcome=all#s-skipLinkTargetForMainSearchResults"
+    url = search_url(rfq_no)
     protest_details = []
 
     with sync_playwright() as p:
@@ -71,7 +96,7 @@ def search(rfq_no: str, yday: str, roundup: bool = False) -> tuple[list[dict], s
 
         if response.status != 200:
             browser.close()
-            raise Exception(f"Received HTTP {response.status}")
+            raise GaoHttpError(response.status)
 
         cards = page.locator("article.node--type-bid-protest-docket")
         protest_count = cards.count()

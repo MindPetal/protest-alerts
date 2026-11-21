@@ -117,17 +117,23 @@ def build_tables(columns: list[str], rows: list[list[str]]) -> list[dict]:
     ]
 
 
-def format_daily(raw_results: list[dict]) -> list:
-    # Format daily protest updates: the header, then one block per solicitation
-    if not raw_results:
+def format_daily(raw_results: list[dict], errors: list[dict] | None = None) -> list:
+    # Format daily protest updates: the header, then one block per
+    # solicitation, then any GAO errors
+    if not raw_results and not errors:
         return []
 
-    return [build_markdown(results.daily_header())] + [
+    blocks = [build_markdown(results.daily_header())] + [
         build_markdown(results.daily_content(result)) for result in raw_results
     ]
 
+    if errors:
+        blocks.append(build_markdown(results.gao_errors(errors)))
 
-def format_roundup(raw_results: list[dict]) -> list:
+    return blocks
+
+
+def format_roundup(raw_results: list[dict], errors: list[dict] | None = None) -> list:
     # Format weekly roundup: a bid line above a table of open protests for
     # each solicitation, then the solicitations with no open protests
     blocks = [build_markdown(results.roundup_header())]
@@ -150,13 +156,20 @@ def format_roundup(raw_results: list[dict]) -> list:
     if no_protest_results:
         blocks.append(build_markdown(results.no_protest_summary(no_protest_results)))
 
+    if errors:
+        blocks.append(build_markdown(results.gao_errors(errors)))
+
     return blocks
 
 
-def format_results(raw_results: list[dict], mode: str) -> list:
+def format_results(
+    raw_results: list[dict], mode: str, errors: list[dict] | None = None
+) -> list:
     # Format results for the run mode: "roundup" or "daily"
     return (
-        format_roundup(raw_results) if mode == "roundup" else format_daily(raw_results)
+        format_roundup(raw_results, errors)
+        if mode == "roundup"
+        else format_daily(raw_results, errors)
     )
 
 

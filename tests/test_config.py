@@ -29,8 +29,12 @@ def test_parse_rfq_list_empty():
 
 
 def test_parse_rfq_list_invalid():
-    with pytest.raises(ValueError):
-        config.parse_rfq_list("123456789")
+    with pytest.raises(ValueError) as exc_info:
+        config.parse_rfq_list("111:RFQ One,123456789")
+
+    # Entries are secrets, so the error names the position, not the value
+    assert str(exc_info.value) == "Invalid RFQ entry #2: expected NO:NAME"
+    assert "123456789" not in str(exc_info.value)
 
 
 def test_settings_from_env():

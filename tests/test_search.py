@@ -6,8 +6,9 @@ from datetime import date
 
 import pytest
 
-from protest_alerts import search, teams
+from protest_alerts import gao, search, slack, teams
 from protest_alerts.config import RfqEntry, Settings, parse_rfq_list
+from protest_alerts.results import gao_errors
 
 GAO_SEARCH = "protest_alerts.gao.search"
 
@@ -44,7 +45,7 @@ def test_process_search_protest_results(mocker):
         },
         {
             "type": "TextBlock",
-            "text": "**1. Test RFQ Name** - 123456789 - [View on GAO](https://example.com)\n\n- Test Company | Bid Protest Sustained | Decided Feb 2, 2024 | [View decision](https://www.gao.gov/products/b-422681.5)\n\n- Test Company2 | Bid Protest Opened | Filed Feb 2, 2024 | Due May 2, 2024",
+            "text": "**Test RFQ Name** - 123456789 - [View on GAO](https://example.com)\n\n- Test Company | Bid Protest Sustained | Decided Feb 2, 2024 | [View decision](https://www.gao.gov/products/b-422681.5)\n\n- Test Company2 | Bid Protest Opened | Filed Feb 2, 2024 | Due May 2, 2024",
             "wrap": True,
         },
         {
@@ -55,9 +56,8 @@ def test_process_search_protest_results(mocker):
     ]
 
     mocker.patch(GAO_SEARCH, return_value=(protest_details, "https://example.com"))
-    assert items == teams.format_results(
-        search.process_search(parse_rfq_list(rfq_list), "daily"), "daily"
-    )
+    results, errors = search.process_search(parse_rfq_list(rfq_list), "daily")
+    assert items == teams.format_results(results, "daily", errors)
 
 
 def test_process_search_zero(mocker):
@@ -65,9 +65,8 @@ def test_process_search_zero(mocker):
     protest_details = []
 
     mocker.patch(GAO_SEARCH, return_value=(protest_details, "https://example.com"))
-    assert [] == teams.format_results(
-        search.process_search(parse_rfq_list(rfq_list), "daily"), "daily"
-    )
+    results, errors = search.process_search(parse_rfq_list(rfq_list), "daily")
+    assert [] == teams.format_results(results, "daily", errors)
 
 
 def test_process_roundup(mocker):
@@ -196,12 +195,11 @@ def test_process_roundup(mocker):
     ]
 
     mocker.patch(GAO_SEARCH, side_effect=fake_search)
-    assert items == teams.format_results(
-        search.process_search(parse_rfq_list(rfq_list), "roundup"), "roundup"
-    )
+    results, errors = search.process_search(parse_rfq_list(rfq_list), "roundup")
+    assert items == teams.format_results(results, "roundup", errors)
 
 
-def test_process_search_returns_numbered_results(mocker):
+def test_process_search_returns_results(mocker):
     protest = {
         "company": "Test Company",
         "status": "Opened",
@@ -217,10 +215,11 @@ def test_process_search_returns_numbered_results(mocker):
         ],
     )
 
-    results = search.process_search(
+    results, errors = search.process_search(
         [RfqEntry("111", "RFQ One"), RfqEntry("222", "RFQ Two")], "daily"
     )
 
+    assert errors == []
     assert [c.args[0] for c in mock_search.call_args_list] == ["111", "222"]
     assert all(c.kwargs == {"roundup": False} for c in mock_search.call_args_list)
     # Daily mode drops solicitations without protest updates
@@ -230,7 +229,6 @@ def test_process_search_returns_numbered_results(mocker):
             "rfq_nm": "RFQ One",
             "protest_details": [protest],
             "url": "https://example.com/1",
-            "index": 1,
         }
     ]
 
@@ -250,9 +248,9 @@ def settings(
 
 
 def test_main_posts_results(mocker):
-    results = [{"index": 1}]
+    results = [{"rfq_no": "111"}]
     mock_process = mocker.patch(
-        "protest_alerts.search.process_search", return_value=results
+        "protest_alerts.search.process_search", return_value=(results, [])
     )
     mock_format = mocker.patch(
         "protest_alerts.teams.format_results", return_value=["items"]
@@ -263,12 +261,12 @@ def test_main_posts_results(mocker):
     search.main(settings("daily", rfqs))
 
     mock_process.assert_called_once_with(rfqs, "daily")
-    mock_format.assert_called_once_with(results, "daily")
+    mock_format.assert_called_once_with(results, "daily", [])
     mock_post.assert_called_once_with("https://webhook.example.com", ["items"])
 
 
 def test_main_daily_no_updates(mocker):
-    mocker.patch("protest_alerts.search.process_search", return_value=[])
+    mocker.patch("protest_alerts.search.process_search", return_value=([], []))
     mock_post = mocker.patch("protest_alerts.teams.post")
 
     search.main(settings("daily"))
@@ -278,7 +276,7 @@ def test_main_daily_no_updates(mocker):
 
 def test_main_roundup_posts_even_without_solicitations(mocker):
     # The roundup always posts its header and "No protests." summary
-    mocker.patch("protest_alerts.search.process_search", return_value=[])
+    mocker.patch("protest_alerts.search.process_search", return_value=([], []))
     mock_post = mocker.patch("protest_alerts.teams.post")
 
     search.main(settings("roundup"))
@@ -291,8 +289,8 @@ SLACK_URL = "https://hooks.slack.com/services/T/B/X"
 
 
 def test_main_posts_to_slack_only(mocker):
-    results = [{"index": 1}]
-    mocker.patch("protest_alerts.search.process_search", return_value=results)
+    results = [{"rfq_no": "111"}]
+    mocker.patch("protest_alerts.search.process_search", return_value=(results, []))
     mock_teams_post = mocker.patch("protest_alerts.teams.post")
     mock_slack_format = mocker.patch(
         "protest_alerts.slack.format_results", return_value=["blocks"]
@@ -302,12 +300,12 @@ def test_main_posts_to_slack_only(mocker):
     search.main(settings("daily", ms_webhook_url="", slack_webhook_url=SLACK_URL))
 
     mock_teams_post.assert_not_called()
-    mock_slack_format.assert_called_once_with(results, "daily")
+    mock_slack_format.assert_called_once_with(results, "daily", [])
     mock_slack_post.assert_called_once_with(SLACK_URL, ["blocks"])
 
 
 def test_main_roundup_posts_to_both(mocker):
-    mocker.patch("protest_alerts.search.process_search", return_value=[])
+    mocker.patch("protest_alerts.search.process_search", return_value=([], []))
     mock_teams_post = mocker.patch("protest_alerts.teams.post")
     mock_slack_post = mocker.patch("protest_alerts.slack.post")
 
@@ -319,7 +317,7 @@ def test_main_roundup_posts_to_both(mocker):
 
 
 def test_main_daily_no_updates_skips_both(mocker):
-    mocker.patch("protest_alerts.search.process_search", return_value=[])
+    mocker.patch("protest_alerts.search.process_search", return_value=([], []))
     mock_teams_post = mocker.patch("protest_alerts.teams.post")
     mock_slack_post = mocker.patch("protest_alerts.slack.post")
 
@@ -330,7 +328,9 @@ def test_main_daily_no_updates_skips_both(mocker):
 
 
 def test_main_teams_failure_still_posts_slack(mocker):
-    mocker.patch("protest_alerts.search.process_search", return_value=[{"index": 1}])
+    mocker.patch(
+        "protest_alerts.search.process_search", return_value=([{"rfq_no": "111"}], [])
+    )
     mocker.patch("protest_alerts.teams.format_results", return_value=["items"])
     mocker.patch("protest_alerts.teams.post", side_effect=Exception("boom"))
     mocker.patch("protest_alerts.slack.format_results", return_value=["blocks"])
@@ -340,3 +340,93 @@ def test_main_teams_failure_still_posts_slack(mocker):
         search.main(settings("daily", slack_webhook_url=SLACK_URL))
 
     mock_slack_post.assert_called_once_with(SLACK_URL, ["blocks"])
+
+
+SEARCH_URL = gao.search_url("123456789")
+
+GAO_ERROR = {
+    "status": 404,
+    "message": "Not Found",
+    "url": SEARCH_URL,
+}
+
+GAO_ERROR_TEXT = (
+    "⚠️ There was an error on GAO's website during the workflow run."
+    f" HTTP 404 received: Not Found. [View on GAO]({SEARCH_URL})"
+)
+
+
+def test_process_search_continues_after_gao_error(mocker, caplog):
+    protest = {
+        "company": "Test Company",
+        "status": "Opened",
+        "type": "Bid Protest",
+        "filed_dt": "Feb 2, 2024",
+        "due_dt": "May 2, 2024",
+    }
+    mock_search = mocker.patch(
+        GAO_SEARCH,
+        side_effect=[
+            gao.GaoHttpError(404),
+            ([protest], "https://example.com/2"),
+        ],
+    )
+
+    results, errors = search.process_search(
+        [RfqEntry("123456789", "Test RFQ Name"), RfqEntry("222", "RFQ Two")],
+        "daily",
+    )
+
+    assert mock_search.call_count == 2
+    # View on GAO links to the failed search, even when a details page failed
+    assert errors == [GAO_ERROR]
+    assert [r["rfq_no"] for r in results] == ["222"]
+    # Solicitation numbers are secrets, so never log them
+    assert "HTTP 404 received: Not Found" in caplog.text
+    assert "123456789" not in caplog.text
+
+
+def test_main_posts_gao_error_then_fails(mocker):
+    # A daily run with only a GAO error still posts, then fails the run
+    mocker.patch("protest_alerts.search.process_search", return_value=([], [GAO_ERROR]))
+    mock_teams_post = mocker.patch("protest_alerts.teams.post")
+    mock_slack_post = mocker.patch("protest_alerts.slack.post")
+
+    with pytest.raises(RuntimeError, match=r"^GAO returned HTTP errors: 404$"):
+        search.main(settings("daily", slack_webhook_url=SLACK_URL))
+
+    teams_texts = [item["text"] for item in mock_teams_post.call_args.args[1]]
+    slack_texts = [block["text"] for block in mock_slack_post.call_args.args[1]]
+    assert teams_texts[-1] == GAO_ERROR_TEXT
+    assert slack_texts[-1] == GAO_ERROR_TEXT
+    assert "Protest updates." in teams_texts[0]
+
+
+def test_roundup_includes_gao_error(mocker):
+    items = teams.format_results([], "roundup", [GAO_ERROR])
+    blocks = slack.format_results([], "roundup", [GAO_ERROR])
+
+    assert items[-1]["text"] == GAO_ERROR_TEXT
+    assert blocks[-1]["text"] == GAO_ERROR_TEXT
+
+
+def test_gao_errors_one_note_per_error():
+    errors = [
+        GAO_ERROR,
+        {**GAO_ERROR, "status": 500, "message": "Internal Server Error"},
+    ]
+
+    assert gao_errors(errors) == (
+        "⚠️ There was an error on GAO's website during the workflow run."
+        f" HTTP 404 received: Not Found. [View on GAO]({SEARCH_URL})"
+        "\n\n⚠️ There was an error on GAO's website during the workflow run."
+        f" HTTP 500 received: Internal Server Error. [View on GAO]({SEARCH_URL})"
+    )
+
+
+def test_gao_http_error_message():
+    error = gao.GaoHttpError(404)
+
+    assert error.message == "Not Found"
+    assert str(error) == "HTTP 404 received: Not Found"
+    assert gao.GaoHttpError(599).message == "Unknown error"

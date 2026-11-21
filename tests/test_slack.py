@@ -29,7 +29,6 @@ CLOSED = {
 def test_format_daily():
     raw_results = [
         {
-            "index": 1,
             "rfq_no": "123456789",
             "rfq_nm": "Test RFQ",
             "protest_details": [CLOSED, OPENED],
@@ -42,7 +41,7 @@ def test_format_daily():
     assert all(block["type"] == "markdown" for block in blocks)
     assert [block["text"] for block in blocks] == [
         f"**{TODAY}.** Protest updates.",
-        "**1. Test RFQ** - 123456789 - [View on GAO](https://example.com)"
+        "**Test RFQ** - 123456789 - [View on GAO](https://example.com)"
         "\n\n- Beta Corp | Bid Protest Denied | Decided Feb 2, 2024"
         " | [View decision](https://www.gao.gov/products/b-000001.1)"
         "\n\n- Acme Federal LLC | Bid Protest Opened | Filed Feb 2, 2024"
@@ -57,14 +56,12 @@ def test_format_daily_empty():
 def test_format_roundup():
     raw_results = [
         {
-            "index": 1,
             "rfq_no": "123",
             "rfq_nm": "RFQ One",
             "protest_details": [OPENED, {**OPENED, "company": "A | B Inc"}],
             "url": "https://example.com/1",
         },
         {
-            "index": 2,
             "rfq_no": "456",
             "rfq_nm": "RFQ Two",
             "protest_details": [],
@@ -121,7 +118,6 @@ def test_build_cell_empty_value():
 def test_split_messages_keeps_bid_line_with_table():
     raw_results = [
         {
-            "index": n,
             "rfq_no": str(n),
             "rfq_nm": f"RFQ {n}",
             "protest_details": [OPENED],

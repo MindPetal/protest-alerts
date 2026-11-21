@@ -13,18 +13,33 @@ from protest_alerts.config import RfqEntry, Settings
 log = logging.getLogger(__name__)
 
 
-def process_search(rfqs: Iterable[RfqEntry], mode: str) -> list[dict]:
-    # Run gao searches and return results, numbered from 1
+def process_search(
+    rfqs: Iterable[RfqEntry], mode: str
+) -> tuple[list[dict], list[dict]]:
+    # Run gao searches and return results and any GAO HTTP errors. An error
+    # on one solicitation doesn't stop the others.
 
     roundup = mode == "roundup"
     raw_results = []
+    errors = []
     yday = (datetime.now() - timedelta(days=1)).strftime("%b %-d, %Y")
     log.info(f"Yesterday: {yday}")
 
     for rfq in rfqs:
         log.info("Processing rfq number search")
 
-        protest_details, url = gao.search(rfq.rfq_no, yday, roundup=roundup)
+        try:
+            protest_details, url = gao.search(rfq.rfq_no, yday, roundup=roundup)
+        except gao.GaoHttpError as e:
+            log.error(f"GAO error: {e}")
+            errors.append(
+                {
+                    "status": e.status,
+                    "message": e.message,
+                    "url": gao.search_url(rfq.rfq_no),
+                }
+            )
+            continue
 
         if roundup or protest_details:
             raw_results.append(
@@ -36,14 +51,7 @@ def process_search(rfqs: Iterable[RfqEntry], mode: str) -> list[dict]:
                 }
             )
 
-    # Inject index into results
-    n = 1
-
-    for result in raw_results:
-        result["index"] = n
-        n += 1
-
-    return raw_results
+    return raw_results, errors
 
 
 def main(settings: Settings) -> None:
@@ -51,13 +59,17 @@ def main(settings: Settings) -> None:
 
     log.info("Start processing")
 
-    results = process_search(settings.rfqs, settings.mode)
-    post_results(settings, results)
+    results, errors = process_search(settings.rfqs, settings.mode)
+    post_results(settings, results, errors)
 
 
-def post_results(settings: Settings, results: list[dict]) -> None:
+def post_results(
+    settings: Settings, results: list[dict], errors: list[dict] | None = None
+) -> None:
     # Post to every configured chat channel. A failure on one channel doesn't
-    # stop the others, but the run still fails afterwards.
+    # stop the others, but the run still fails afterwards. GAO errors are
+    # included in the post and also fail the run.
+    errors = errors or []
     channels = [
         (teams, settings.ms_webhook_url),
         (slack, settings.slack_webhook_url),
@@ -69,7 +81,7 @@ def post_results(settings: Settings, results: list[dict]) -> None:
         if not webhook_url:
             continue
 
-        items = channel.format_results(results, settings.mode)
+        items = channel.format_results(results, settings.mode, errors)
 
         if not items:
             continue
@@ -84,8 +96,18 @@ def post_results(settings: Settings, results: list[dict]) -> None:
             log.exception("Posting results to %s failed", name)
             failed.append(name)
 
+    problems = []
+
     if failed:
-        raise RuntimeError(f"Posting failed for: {', '.join(failed)}")
+        problems.append(f"Posting failed for: {', '.join(failed)}")
+
+    if errors:
+        problems.append(
+            "GAO returned HTTP errors: " + ", ".join(str(e["status"]) for e in errors)
+        )
+
+    if problems:
+        raise RuntimeError("; ".join(problems))
 
     if not posted:
         log.info("No protest updates found")

@@ -19,7 +19,6 @@ def test_build_textblock():
 def test_format_daily():
     raw_results = [
         {
-            "index": 1,
             "rfq_no": "123456789",
             "rfq_nm": "Test RFQ Name",
             "protest_details": [
@@ -41,7 +40,6 @@ def test_format_daily():
             "url": "https://example.com",
         },
         {
-            "index": 2,
             "rfq_no": "987654321",
             "rfq_nm": "Test RFQ Name2",
             "protest_details": [
@@ -70,7 +68,7 @@ def test_format_daily():
         },
         {
             "type": "TextBlock",
-            "text": "**1. Test RFQ Name** - 123456789 - [View on GAO](https://example.com)\n\n- Test Company | Bid Protest Sustained | Decided Feb 2, 2024 | [View decision](https://www.gao.gov/products/b-422681.5)\n\n- Test Company2 | Bid Protest Opened | Filed Feb 2, 2024 | Due May 2, 2024",
+            "text": "**Test RFQ Name** - 123456789 - [View on GAO](https://example.com)\n\n- Test Company | Bid Protest Sustained | Decided Feb 2, 2024 | [View decision](https://www.gao.gov/products/b-422681.5)\n\n- Test Company2 | Bid Protest Opened | Filed Feb 2, 2024 | Due May 2, 2024",
             "wrap": True,
         },
         {
@@ -80,7 +78,7 @@ def test_format_daily():
         },
         {
             "type": "TextBlock",
-            "text": "**2. Test RFQ Name2** - 987654321 - [View on GAO](https://example.com)\n\n- Test Company | Bid Protest Opened | Filed Feb 2, 2024 | Due May 2, 2024",
+            "text": "**Test RFQ Name2** - 987654321 - [View on GAO](https://example.com)\n\n- Test Company | Bid Protest Opened | Filed Feb 2, 2024 | Due May 2, 2024",
             "wrap": True,
         },
         {
@@ -97,7 +95,6 @@ def test_format_daily_closed_no_decision_url():
     """Closed protest with no published decision should not include a View decision link."""
     raw_results = [
         {
-            "index": 1,
             "rfq_no": "123456789",
             "rfq_nm": "Test RFQ Name",
             "protest_details": [
@@ -125,7 +122,6 @@ def test_format_daily_decision_url_not_shared_across_protests():
     the first protest's output must not include any decision link."""
     raw_results = [
         {
-            "index": 1,
             "rfq_no": "111111111",
             "rfq_nm": "RFQ No Decision",
             "protest_details": [
@@ -140,7 +136,6 @@ def test_format_daily_decision_url_not_shared_across_protests():
             "url": "https://example.com/1",
         },
         {
-            "index": 2,
             "rfq_no": "222222222",
             "rfq_nm": "RFQ With Decision",
             "protest_details": [
@@ -175,7 +170,6 @@ def test_format_roundup():
     for solicitations with no open protests."""
     raw_results = [
         {
-            "index": 1,
             "rfq_no": "123456789",
             "rfq_nm": "Test RFQ Name",
             "protest_details": [
@@ -190,7 +184,6 @@ def test_format_roundup():
             "url": "https://example.com",
         },
         {
-            "index": 2,
             "rfq_no": "987654321",
             "rfq_nm": "Test RFQ Name2",
             "protest_details": [],
@@ -311,7 +304,6 @@ def test_format_roundup_multiple_protests_blank_bid():
     header above a single table containing a row per protest."""
     raw_results = [
         {
-            "index": 1,
             "rfq_no": "123456789",
             "rfq_nm": "Test RFQ Name",
             "protest_details": [
@@ -361,14 +353,12 @@ def test_format_roundup_no_open_protests():
     below the header, above the no-open-protests list."""
     raw_results = [
         {
-            "index": 1,
             "rfq_no": "123456789",
             "rfq_nm": "Test RFQ Name",
             "protest_details": [],
             "url": "https://example.com",
         },
         {
-            "index": 2,
             "rfq_no": "987654321",
             "rfq_nm": "Test RFQ Name2",
             "protest_details": [],
@@ -421,7 +411,7 @@ def test_post(mocker):
         },
         {
             "type": "TextBlock",
-            "text": "**1. Test RFQ Name** - 123456789 - [View on GAO](https://example.com)\n\n- Test Company | Bid Protest Sustained | Decided Feb 2, 2024 | [View decision](https://example.com)\n\n- Test Company2 | Bid Protest Opened | Filed Feb 2, 2024 | Due May 2, 2024",
+            "text": "**Test RFQ Name** - 123456789 - [View on GAO](https://example.com)\n\n- Test Company | Bid Protest Sustained | Decided Feb 2, 2024 | [View decision](https://example.com)\n\n- Test Company2 | Bid Protest Opened | Filed Feb 2, 2024 | Due May 2, 2024",
             "wrap": True,
         },
         {
@@ -431,7 +421,7 @@ def test_post(mocker):
         },
         {
             "type": "TextBlock",
-            "text": "**2. Test RFQ Name2** - 987654321 - [View on GAO](https://example.com)\n\n- Test Company | Bid Protest Opened | Filed Feb 2, 2024 | Due May 2, 2024",
+            "text": "**Test RFQ Name2** - 987654321 - [View on GAO](https://example.com)\n\n- Test Company | Bid Protest Opened | Filed Feb 2, 2024 | Due May 2, 2024",
             "wrap": True,
         },
         {
@@ -466,7 +456,6 @@ def test_post(mocker):
 def test_format_results_dispatches_on_mode():
     raw_results = [
         {
-            "index": 1,
             "rfq_no": "123456789",
             "rfq_nm": "Test RFQ Name",
             "protest_details": [],

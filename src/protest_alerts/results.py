@@ -25,7 +25,9 @@ def daily_header() -> str:
 def daily_content(result: dict) -> str:
     # Markdown for one solicitation's protest updates: a heading line, then one
     # bullet per opened or closed protest
-    content = f"**{result['index']}. {result['rfq_nm']}** - {result['rfq_no']} - [View on GAO]({result['url']})"
+    content = (
+        f"**{result['rfq_nm']}** - {result['rfq_no']} - [View on GAO]({result['url']})"
+    )
 
     for detail in result["protest_details"]:
         if "decided_dt" in detail:
@@ -68,3 +70,14 @@ def no_protest_summary(no_protest_results: list[dict]) -> str:
     # Lists tracked solicitations that have no open protests
     names = ", ".join(result["rfq_nm"] for result in no_protest_results)
     return f"**Tracked bids with no open protests:** {names}"
+
+
+def gao_errors(errors: list[dict]) -> str:
+    # Note for each GAO HTTP error hit during the run. View on GAO links to the
+    # search that failed.
+    return "\n\n".join(
+        "⚠️ There was an error on GAO's website during the workflow run."
+        f" HTTP {error['status']} received: {error['message']}."
+        f" [View on GAO]({error['url']})"
+        for error in errors
+    )

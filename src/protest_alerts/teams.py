@@ -42,22 +42,25 @@ def build_row(values: list[str], stripe_index: int) -> dict:
     }
 
 
-def format_daily(raw_results: list[dict]) -> list:
-    # Format daily protest updates
+def format_daily(raw_results: list[dict], errors: list[dict] | None = None) -> list:
+    # Format daily protest updates, then any GAO errors
 
     items = []
 
-    if raw_results:
+    if raw_results or errors:
         items += [build_textblock(results.daily_header()), build_textblock("")]
 
         for result in raw_results:
             content = results.daily_content(result)
             items += [build_textblock(content), build_textblock("")]
 
+    if errors:
+        items.append(build_textblock(results.gao_errors(errors)))
+
     return items
 
 
-def format_roundup(raw_results: list[dict]) -> list:
+def format_roundup(raw_results: list[dict], errors: list[dict] | None = None) -> list:
     # Format weekly roundup as a full-width bid header above a compact table
 
     items = [build_textblock(results.roundup_header()), build_textblock("")]
@@ -96,13 +99,20 @@ def format_roundup(raw_results: list[dict]) -> list:
             build_textblock(results.no_protest_summary(no_protest_results)),
         ]
 
+    if errors:
+        items += [build_textblock(""), build_textblock(results.gao_errors(errors))]
+
     return items
 
 
-def format_results(raw_results: list[dict], mode: str) -> list:
+def format_results(
+    raw_results: list[dict], mode: str, errors: list[dict] | None = None
+) -> list:
     # Format results for the run mode: "roundup" or "daily"
     return (
-        format_roundup(raw_results) if mode == "roundup" else format_daily(raw_results)
+        format_roundup(raw_results, errors)
+        if mode == "roundup"
+        else format_daily(raw_results, errors)
     )
 
 

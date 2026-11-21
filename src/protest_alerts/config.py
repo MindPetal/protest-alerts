@@ -63,9 +63,9 @@ def parse_rfq_list(rfq_list: str) -> list[RfqEntry]:
     if not rfq_list.strip():
         return entries
 
-    for pair in rfq_list.split(","):
+    for n, pair in enumerate(rfq_list.split(","), start=1):
         if ":" not in pair:
-            raise ValueError(f"Invalid RFQ entry '{pair}': expected NO:NAME")
+            raise ValueError(f"Invalid RFQ entry #{n}: expected NO:NAME")
 
         rfq_no, rfq_nm = pair.split(":", 1)
         entries.append(RfqEntry(rfq_no.strip(), rfq_nm.strip()))

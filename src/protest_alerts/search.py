@@ -14,16 +14,17 @@ log = logging.getLogger(__name__)
 
 
 def process_search(
-    rfqs: Iterable[RfqEntry], mode: str
+    rfqs: Iterable[RfqEntry], mode: str, days: int = 1
 ) -> tuple[list[dict], list[dict]]:
     # Run gao searches and return results and any GAO HTTP errors. An error
-    # on one solicitation doesn't stop the others.
+    # on one solicitation doesn't stop the others. Daily mode matches the
+    # single date `days` ago; roundup ignores the date.
 
     roundup = mode == "roundup"
     raw_results = []
     errors = []
-    yday = (datetime.now() - timedelta(days=1)).strftime("%b %-d, %Y")
-    log.info(f"Yesterday: {yday}")
+    yday = (datetime.now() - timedelta(days=days)).strftime("%b %-d, %Y")
+    log.info(f"Searching for date: {yday}")
 
     for rfq in rfqs:
         log.info("Processing rfq number search")
@@ -59,7 +60,7 @@ def main(settings: Settings) -> None:
 
     log.info("Start processing")
 
-    results, errors = process_search(settings.rfqs, settings.mode)
+    results, errors = process_search(settings.rfqs, settings.mode, settings.days)
     post_results(settings, results, errors)
 
 

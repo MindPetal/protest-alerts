@@ -47,6 +47,16 @@ def test_settings_from_env():
     )
 
 
+def test_settings_from_env_days():
+    settings = Settings.from_env(mode="daily", env={**ENV, "DAYS": "3"})
+
+    assert settings.days == 3
+
+
+def test_settings_from_env_days_defaults_to_one():
+    assert Settings.from_env(mode="daily", env=ENV).days == 1
+
+
 def test_settings_from_env_rejects_bad_mode():
     with pytest.raises(ValueError):
         Settings.from_env(mode="weekly", env=ENV)

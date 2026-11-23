@@ -21,11 +21,13 @@ class Settings:
     ms_webhook_url: str
     mode: str
     slack_webhook_url: str = ""
+    days: int = 1
 
     @classmethod
     def from_env(cls, mode: str, env: Mapping[str, str] = os.environ) -> "Settings":
         """
-        Read RFQ_LIST and at least one of MS_URL / SLACK_URL from the environment
+        Read RFQ_LIST, optional DAYS, and at least one of MS_URL / SLACK_URL
+        from the environment
         """
         if mode not in MODES:
             raise ValueError(f"Invalid mode '{mode}': expected one of {MODES}")
@@ -37,6 +39,7 @@ class Settings:
             ms_webhook_url=ms_webhook_url,
             mode=mode,
             slack_webhook_url=slack_webhook_url,
+            days=int(env.get("DAYS", "1")),
         )
 
 

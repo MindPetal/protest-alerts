@@ -2,7 +2,7 @@
 Tests for search.py
 """
 
-from datetime import date
+from datetime import date, datetime, timedelta
 
 import pytest
 
@@ -67,6 +67,16 @@ def test_process_search_zero(mocker):
     mocker.patch(GAO_SEARCH, return_value=(protest_details, "https://example.com"))
     results, errors = search.process_search(parse_rfq_list(rfq_list), "daily")
     assert [] == teams.format_results(results, "daily", errors)
+
+
+@pytest.mark.parametrize("days", [1, 3])
+def test_process_search_uses_days_back(mocker, days):
+    mock_search = mocker.patch(GAO_SEARCH, return_value=([], "https://example.com"))
+    expected = (datetime.now() - timedelta(days=days)).strftime("%b %-d, %Y")
+
+    search.process_search(parse_rfq_list("123456789:Test RFQ Name"), "daily", days)
+
+    assert mock_search.call_args.args[1] == expected
 
 
 def test_process_roundup(mocker):
@@ -260,7 +270,7 @@ def test_main_posts_results(mocker):
 
     search.main(settings("daily", rfqs))
 
-    mock_process.assert_called_once_with(rfqs, "daily")
+    mock_process.assert_called_once_with(rfqs, "daily", 1)
     mock_format.assert_called_once_with(results, "daily", [])
     mock_post.assert_called_once_with("https://webhook.example.com", ["items"])
 

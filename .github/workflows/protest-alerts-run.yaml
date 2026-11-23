@@ -4,6 +4,11 @@ name: protest-alerts-run
 
 on:
   workflow_dispatch:
+    inputs:
+      days:
+        description: "Number of days back to search"
+        required: false
+        default: "1"
   #schedule:
     #- cron: '24 04 * * *'
       #timezone: "America/New_York"
@@ -31,4 +36,5 @@ jobs:
         RFQ_LIST: ${{ secrets.RFQ_LIST }}
         MS_URL: ${{ secrets.MS_URL }}
         SLACK_URL: ${{ secrets.SLACK_URL }}
+        DAYS: ${{ github.event.inputs.days || '1' }}
       run: uv run protest-alerts daily

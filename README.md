@@ -66,6 +66,8 @@ Put the settings in a gitignored `.env` file so the webhook URL stays out of you
 RFQ_LIST='my-rfq-list'
 MS_URL='my-ms-webhook-url'
 SLACK_URL='my-slack-webhook-url'
+# Optional: days back to search in daily mode (default 1)
+DAYS=1
 ```
 
 Execute daily alert:
